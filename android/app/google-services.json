@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "231708624859",
+    "project_id": "datn-3daa6",
+    "storage_bucket": "datn-3daa6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231708624859:android:42f206254f7212898b09fe",
+        "android_client_info": {
+          "package_name": "com.example.datn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBC1vOvmlIhpuU-1J3EMezcoHGKNfK-SV0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,3 @@
+[info] Unnecessary use of multiple underscores (D:\DACN\src\datn\lib\features\customer\screens\cart\cart_screen.dart:71:47)
+[info] Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check (D:\DACN\src\datn\lib\features\customer\screens\ride\ride_screen.dart:1183:35)
+[info] Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check (D:\DACN\src\datn\lib\features\customer\screens\ride\ride_screen.dart:1189:35)
