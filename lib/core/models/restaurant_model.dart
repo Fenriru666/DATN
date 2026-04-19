@@ -1,4 +1,4 @@
-class RestaurantModel {
+﻿class RestaurantModel {
   final String id;
   final String name;
   final double rating;

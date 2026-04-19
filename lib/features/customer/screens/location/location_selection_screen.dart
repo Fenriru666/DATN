@@ -170,16 +170,16 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
                           shape: BoxShape.circle,
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(color: Colors.black12, blurRadius: 4),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_back,
-                          color: Colors.black,
+                          color: Theme.of(context).iconTheme.color,
                         ),
                       ),
                     ),
@@ -187,7 +187,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: const [
                             BoxShadow(color: Colors.black12, blurRadius: 4),
@@ -218,7 +218,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                     ), // Align with search bar
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: const [
                         BoxShadow(color: Colors.black12, blurRadius: 4),
@@ -252,6 +252,28 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
             ),
           ),
 
+          // Current Location Button
+          Positioned(
+            bottom: 220, // Adjust based on bottom card height
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: 'current_location_loc_sel',
+              backgroundColor: Colors.white,
+              mini: true,
+              onPressed: () async {
+                setState(() {
+                  _isMoving = true;
+                  _address = "Locating...";
+                });
+                await _initLocation();
+                setState(() {
+                  _isMoving = false;
+                });
+              },
+              child: const Icon(Icons.my_location, color: Colors.blue),
+            ),
+          ),
+
           // Bottom Address Card & Confirm Button
           Positioned(
             bottom: 0,
@@ -259,10 +281,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
             right: 0,
             child: Container(
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                boxShadow: [
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 10,

@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 class AiHistoryScreen extends StatefulWidget {
   final String role;
-  
+
   const AiHistoryScreen({super.key, this.role = 'consumer'});
 
   @override
@@ -33,10 +33,7 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
             children: [
               const Text(
                 'Chọn Chủ Đề Trợ Lý',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -123,7 +120,11 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
     );
   }
 
-  Future<void> _startNewSession(BuildContext sheetContext, String topicId, String title) async {
+  Future<void> _startNewSession(
+    BuildContext sheetContext,
+    String topicId,
+    String title,
+  ) async {
     final userId = _userId;
     if (userId == null) return;
 
@@ -144,12 +145,12 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
         userId: userId,
         topic: topicId,
       );
-      
+
       if (!mounted) return;
-      
+
       // 3. Close the loading dialog
       Navigator.of(context).pop();
-      
+
       // 4. Navigate to Chat screen
       Navigator.push(
         context,
@@ -164,7 +165,7 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       // Close the loading dialog on error
       Navigator.of(context).pop();
 
@@ -207,19 +208,26 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
           : StreamBuilder<QuerySnapshot>(
               stream: _chatService.streamSessions(_userId!),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
                   debugPrint("Stream Error: ${snapshot.error}");
-                  return Center(child: Text("Đã xảy ra lỗi: ${snapshot.error}"));
+                  return Center(
+                    child: Text("Đã xảy ra lỗi: ${snapshot.error}"),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey[300]),
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 80,
+                          color: Colors.grey[300],
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           "Chưa có cuộc trò chuyện nào",
@@ -241,12 +249,13 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
                     final topic = data['topic'] ?? 'Unknown';
                     final lastMessage = data['lastMessage'] ?? '...';
                     final updatedAt = data['updatedAt'] as Timestamp?;
-                    
+
                     String formattedDate = '';
                     if (updatedAt != null) {
                       final now = DateTime.now();
                       final date = updatedAt.toDate();
-                      if (now.difference(date).inDays == 0 && now.day == date.day) {
+                      if (now.difference(date).inDays == 0 &&
+                          now.day == date.day) {
                         formattedDate = DateFormat.Hm().format(date);
                       } else {
                         formattedDate = DateFormat('dd/MM HH:mm').format(date);
@@ -278,7 +287,11 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.delete, color: Colors.white, size: 30),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                       ),
                       confirmDismiss: (direction) async {
                         return await showDialog(
@@ -286,15 +299,24 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
                           builder: (BuildContext context) {
                             return AlertDialog(
                               title: const Text("Xác nhận"),
-                              content: const Text("Sếp có chắc chắn muốn xóa cuộc trò chuyện này không?"),
+                              content: const Text(
+                                "Sếp có chắc chắn muốn xóa cuộc trò chuyện này không?",
+                              ),
                               actions: <Widget>[
                                 TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                  child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text(
+                                    "Hủy",
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.of(context).pop(true),
-                                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
                                   child: const Text("Xóa"),
                                 ),
                               ],
@@ -303,12 +325,13 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
                         );
                       },
                       onDismissed: (direction) async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
                         await _chatService.deleteSession(_userId!, sessionId);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Đã xóa cuộc trò chuyện')),
-                          );
-                        }
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Đã xóa cuộc trò chuyện'),
+                          ),
+                        );
                       },
                       child: Card(
                         elevation: 0,
@@ -327,7 +350,11 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(topicIcon, color: topicColor, size: 18),
+                                    Icon(
+                                      topicIcon,
+                                      color: topicColor,
+                                      size: 18,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       topicName,
@@ -339,7 +366,10 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
                                     const Spacer(),
                                     Text(
                                       formattedDate,
-                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -364,7 +394,10 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
         onPressed: () => _showNewChatBottomSheet(context),
         backgroundColor: Colors.deepOrange,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Chat Mới', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Chat Mới',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

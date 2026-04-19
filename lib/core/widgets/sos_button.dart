@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class SOSButton extends StatefulWidget {
   final VoidCallback onSOSActived;

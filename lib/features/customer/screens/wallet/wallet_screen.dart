@@ -3,8 +3,11 @@ import 'package:datn/features/customer/services/wallet_service.dart';
 import 'package:datn/core/models/transaction_model.dart';
 import 'package:datn/core/utils/ui_helpers.dart';
 import 'package:datn/features/customer/screens/wallet/transfer_money_screen.dart';
+import 'package:datn/features/customer/screens/wallet/withdraw_screen.dart';
+import 'package:datn/features/customer/services/vnpay_service.dart';
+import 'package:datn/features/customer/screens/wallet/vnpay_webview_screen.dart';
 import 'package:intl/intl.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -58,14 +61,20 @@ class _WalletScreenState extends State<WalletScreen> {
               }
 
               Navigator.pop(ctx); // Close Dialog
-              try {
-                await _walletService.topUp(amount);
-                if (!ctx.mounted) return;
-                UIHelpers.showSnackBar(ctx, 'Top up successful!');
-              } catch (e) {
-                if (!ctx.mounted) return;
-                UIHelpers.showErrorDialog(ctx, 'Top Up Failed', e.toString());
-              }
+
+              final vnpayService = VnpayService();
+              final url = vnpayService.generatePaymentUrl(
+                amount: amount,
+                description: 'Nap tien vao vi SuperApp',
+              );
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      VnpayWebviewScreen(paymentUrl: url, amount: amount),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFE724C),
@@ -85,13 +94,19 @@ class _WalletScreenState extends State<WalletScreen> {
       appBar: AppBar(
         title: Text(
           AppLocalizations.of(context)!.walletTitle,
-          style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Theme.of(context).textTheme.titleLarge?.color,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.more_horiz, color: Theme.of(context).iconTheme.color),
+            icon: Icon(
+              Icons.more_horiz,
+              color: Theme.of(context).iconTheme.color,
+            ),
             onPressed: () {},
           ),
         ],
@@ -130,7 +145,10 @@ class _WalletScreenState extends State<WalletScreen> {
                     children: [
                       Text(
                         AppLocalizations.of(context)!.walletTotalBalance,
-                        style: const TextStyle(color: Colors.white70, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -177,7 +195,11 @@ class _WalletScreenState extends State<WalletScreen> {
                           letterSpacing: 1.2,
                         ),
                       ),
-                      Icon(Icons.account_balance_wallet, color: Colors.white, size: 30),
+                      Icon(
+                        Icons.account_balance_wallet,
+                        color: Colors.white,
+                        size: 30,
+                      ),
                     ],
                   ),
                 ],
@@ -224,10 +246,12 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => UIHelpers.showSnackBar(
-                    context,
-                    AppLocalizations.of(context)!.featureUnderDev,
-                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WithdrawScreen()),
+                    );
+                  },
                   child: _WalletAction(
                     icon: Icons.arrow_outward,
                     label: AppLocalizations.of(context)!.walletWithdraw,
@@ -244,9 +268,15 @@ class _WalletScreenState extends State<WalletScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.walletRecentTransactions,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                Text(AppLocalizations.of(context)!.walletViewAll, style: TextStyle(color: Colors.grey[500])),
+                Text(
+                  AppLocalizations.of(context)!.walletViewAll,
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -264,7 +294,11 @@ class _WalletScreenState extends State<WalletScreen> {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(20.0),
-                      child: Text(AppLocalizations.of(context)!.walletNoRecentTransactions),
+                      child: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.walletNoRecentTransactions,
+                      ),
                     ),
                   );
                 }
@@ -278,7 +312,8 @@ class _WalletScreenState extends State<WalletScreen> {
                   itemBuilder: (context, index) {
                     final tx = transactions[index];
                     final isIncome = tx.amount > 0;
-                    final isDarkInner = Theme.of(context).brightness == Brightness.dark;
+                    final isDarkInner =
+                        Theme.of(context).brightness == Brightness.dark;
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -290,7 +325,9 @@ class _WalletScreenState extends State<WalletScreen> {
                             decoration: BoxDecoration(
                               color: isDarkInner
                                   ? Colors.grey[800]
-                                  : (isIncome ? Colors.green[50] : Colors.red[50]),
+                                  : (isIncome
+                                        ? Colors.green[50]
+                                        : Colors.red[50]),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Icon(
@@ -312,7 +349,9 @@ class _WalletScreenState extends State<WalletScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    color: isDarkInner ? Colors.white : Colors.black,
+                                    color: isDarkInner
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -321,7 +360,9 @@ class _WalletScreenState extends State<WalletScreen> {
                                 Text(
                                   _dateFormat.format(tx.createdAt),
                                   style: TextStyle(
-                                    color: isDarkInner ? Colors.grey[400] : Colors.grey[500],
+                                    color: isDarkInner
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
                                     fontSize: 12,
                                   ),
                                 ),
@@ -370,8 +411,10 @@ class _WalletAction extends StatelessWidget {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : color[50], 
-            shape: BoxShape.circle
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[800]
+                : color[50],
+            shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 28),
         ),

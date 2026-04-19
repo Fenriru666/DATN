@@ -77,7 +77,9 @@ class _MerchantMenuScreenState extends State<MerchantMenuScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xóa Món Ăn'),
-        content: const Text('Bạn có chắc chắn muốn xóa món này khỏi thực đơn?'),
+        content: const Text(
+          'Bạn có chắc chắn muốn xóa món này khỏi thực đơn?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

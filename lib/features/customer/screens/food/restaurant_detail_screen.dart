@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:datn/features/customer/services/restaurant_service.dart';
 import 'package:datn/features/customer/services/cart_service.dart';
 import 'package:datn/core/models/restaurant_model.dart';
@@ -171,7 +171,7 @@ class RestaurantDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 20),
                   Text(
-                    '${cartService.totalAmount.toInt()} ₫',
+                    '${cartService.totalAmount.toInt()} đ',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ],
@@ -249,7 +249,7 @@ class _MenuItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${item.price.toInt()} ₫',
+                  '${item.price.toInt()} đ',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

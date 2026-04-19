@@ -3,24 +3,28 @@ import 'package:datn/features/admin/services/admin_service.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:datn/core/utils/ui_helpers.dart';
 import 'package:intl/intl.dart';
+import 'package:datn/features/admin/screens/admin_layout.dart';
 
 class AdminUserManagementScreen extends StatefulWidget {
   const AdminUserManagementScreen({super.key});
 
   @override
-  State<AdminUserManagementScreen> createState() =>
-      _AdminUserManagementScreenState();
+  State<AdminUserManagementScreen> createState() => _AdminUserManagementScreenState();
 }
 
-class _AdminUserManagementScreenState extends State<AdminUserManagementScreen>
-    with SingleTickerProviderStateMixin {
+class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final AdminService _adminService = AdminService();
+
+  late final Stream<List<UserModel>> _pendingUsersStream;
+  late final Stream<List<UserModel>> _activePartnersStream;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _pendingUsersStream = _adminService.streamPendingUsers();
+    _activePartnersStream = _adminService.streamActivePartners();
   }
 
   @override
@@ -31,225 +35,275 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Duyệt Tài Khoản'),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.orange,
-          tabs: const [
-            Tab(text: 'Chờ Duyệt (Pending)'),
-            Tab(text: 'Đã Duyệt (Active)'),
+    return AdminLayout(
+      currentRoute: 'users',
+      title: 'Quản Lý Người Dùng',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeaderActions(),
+          const SizedBox(height: 24),
+          _buildTabs(),
+          const SizedBox(height: 24),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x05000000), blurRadius: 10, offset: Offset(0, 2)),
+                ],
+              ),
+              child: TabBarView(
+                controller: _tabController,
+                physics: const NeverScrollableScrollPhysics(), // Disabling swipe on web to avoid conflicts
+                children: [_buildPendingUsersTab(), _buildActiveUsersTab()],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderActions() {
+    return const Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Danh sách Đối Tác',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Kiểm duyệt và quản lý tài khoản Đối Tác trên hệ thống',
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 15),
+            ),
           ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildTabs() {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
-      body: TabBarView(
+      child: TabBar(
         controller: _tabController,
-        children: [_buildPendingUsersTab(), _buildActiveUsersTab()],
+        labelColor: const Color(0xFF4F46E5),
+        unselectedLabelColor: const Color(0xFF64748B),
+        indicatorColor: const Color(0xFF4F46E5),
+        indicatorWeight: 3,
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+        tabs: const [
+          Tab(text: 'Chờ Duyệt (Pending)'),
+          Tab(text: 'Đã Duyệt (Active)'),
+        ],
       ),
     );
   }
 
   Widget _buildPendingUsersTab() {
     return StreamBuilder<List<UserModel>>(
-      stream: _adminService.streamPendingUsers(),
+      stream: _pendingUsersStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: Colors.indigo));
         }
 
         final users = snapshot.data ?? [];
         if (users.isEmpty) {
-          return const Center(
-            child: Text(
-              'Không có tài khoản nào đang chờ duyệt',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          );
+          return _buildEmptyState('Không có tài khoản nào đang chờ duyệt');
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            final user = users[index];
-            return _buildUserCard(user, isPending: true);
-          },
-        );
+        return _buildDataTable(users, isPending: true);
       },
     );
   }
 
   Widget _buildActiveUsersTab() {
-    // Only showing drivers and merchants for management context
     return StreamBuilder<List<UserModel>>(
-      stream: _adminService
-          .streamUsers(), // We'll filter this client-side for simplicity here
+      stream: _activePartnersStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: Colors.indigo));
         }
 
         final allUsers = snapshot.data ?? [];
         final activePartners = allUsers
-            .where(
-              (u) =>
-                  u.isApproved &&
-                  !u.roles.contains(UserRole.customer) &&
-                  !u.roles.contains(UserRole.admin),
-            )
+            .where((u) => !u.roles.contains(UserRole.customer) && !u.roles.contains(UserRole.admin))
             .toList();
 
         if (activePartners.isEmpty) {
-          return const Center(
-            child: Text('Không có đối tác (Tài Xế/Nhà Hàng) nào hoạt động'),
-          );
+          return _buildEmptyState('Không có đối tác nào hoạt động');
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: activePartners.length,
-          itemBuilder: (context, index) {
-            return _buildUserCard(activePartners[index], isPending: false);
-          },
-        );
+        return _buildDataTable(activePartners, isPending: false);
       },
     );
   }
 
-  Widget _buildUserCard(UserModel user, {required bool isPending}) {
-    final roleNames = user.roles
-        .map((e) => e.toString().split('.').last)
-        .join(', ');
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inbox_rounded, size: 64, color: const Color(0xFFCBD5E1)),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 16, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataTable(List<UserModel> users, {required bool isPending}) {
     final formatter = DateFormat('dd/MM/yyyy HH:mm');
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: user.roles.contains(UserRole.driver)
-                      ? Colors.orange
-                      : Colors.green,
-                  child: Icon(
-                    user.roles.contains(UserRole.driver)
-                        ? Icons.motorcycle
-                        : Icons.restaurant,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+          dataRowMinHeight: 64,
+          dataRowMaxHeight: 64,
+          horizontalMargin: 24,
+          columnSpacing: 40,
+          columns: const [
+            DataColumn(label: Text('ĐỐI TÁC', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+            DataColumn(label: Text('VAI TRÒ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+            DataColumn(label: Text('NGÀY ĐĂNG KÝ', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+            DataColumn(label: Text('TRẠNG THÁI', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+            DataColumn(label: Text('THAO TÁC', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)))),
+          ],
+          rows: users.map((user) {
+            final roleNames = user.roles.map((e) => e.toString().split('.').last.toUpperCase()).join(', ');
+            final isDriver = user.roles.contains(UserRole.driver);
+            
+            return DataRow(
+              cells: [
+                DataCell(
+                  Row(
                     children: [
-                      Text(
-                        user.email,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: isDriver ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
+                        child: Icon(
+                          isDriver ? Icons.motorcycle_rounded : Icons.restaurant_rounded,
+                          color: isDriver ? const Color(0xFFD97706) : const Color(0xFF059669),
+                          size: 18,
                         ),
                       ),
-                      Text(
-                        'Role: ${roleNames.toUpperCase()}',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            user.email,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                          ),
+                          Text(
+                            user.uid,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPending
-                        ? Colors.red.withValues(alpha: 0.1)
-                        : Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    isPending ? 'Pending' : 'Active',
-                    style: TextStyle(
-                      color: isPending ? Colors.red : Colors.green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                DataCell(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      roleNames,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
                     ),
                   ),
                 ),
+                DataCell(
+                  Text(
+                    formatter.format(user.createdAt),
+                    style: const TextStyle(color: Color(0xFF64748B)),
+                  ),
+                ),
+                DataCell(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isPending ? const Color(0xFFFEF2F2) : const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isPending ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isPending ? 'Pending' : 'Active',
+                          style: TextStyle(
+                            color: isPending ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                DataCell(
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: isPending
+                        ? [
+                            IconButton(
+                              icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A)),
+                              tooltip: 'Duyệt',
+                              onPressed: () => _approveUser(user.uid),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626)),
+                              tooltip: 'Từ chối',
+                              onPressed: () => _banUser(user.uid),
+                            ),
+                          ]
+                        : [
+                            IconButton(
+                              icon: const Icon(Icons.block_rounded, color: Color(0xFFDC2626)),
+                              tooltip: 'Đình chỉ (Ban)',
+                              onPressed: () => _banUser(user.uid),
+                            ),
+                          ],
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(
-              height: 12,
-            ), // Added a small space after the header row
-            Text(
-              'UID: ${user.uid}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            Text(
-              'Joined: ${formatter.format(user.createdAt)}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const Divider(height: 24), // Moved the divider here
-
-            if (isPending) ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => _banUser(user.uid),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    child: const Text('Từ chối'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () => _approveUser(user.uid),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
-                    ),
-                    child: const Text(
-                      'Duyệt',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _banUser(user.uid), // Revoke access
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    icon: const Icon(Icons.block, size: 16),
-                    label: const Text('Đình chỉ (Ban)'),
-                  ),
-                ],
-              ),
-            ],
-          ],
+            );
+          }).toList(),
         ),
       ),
     );

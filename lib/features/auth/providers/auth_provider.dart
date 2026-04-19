@@ -10,7 +10,10 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
 // 2. Auth State Changes Stream Provider (Listens to Supabase User login/logout)
 final authStateChangesProvider = StreamProvider<User?>((ref) {
-  return ref.watch(authServiceProvider).authStateChanges.map((state) => state.session?.user);
+  return ref
+      .watch(authServiceProvider)
+      .authStateChanges
+      .map((state) => state.session?.user);
 });
 
 // 3. User Data Provider (Fetches full UserModel from Firestore whenever authState changes)

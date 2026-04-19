@@ -28,11 +28,11 @@ class ChatService {
           .doc(userId)
           .collection('chat_sessions')
           .add({
-        'topic': topic,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastMessage': 'Bắt đầu trò chuyện',
-      });
+            'topic': topic,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+            'lastMessage': 'Bắt đầu trò chuyện',
+          });
       return sessionRef.id;
     } catch (e) {
       debugPrint("Lỗi tạo session: $e");
@@ -73,7 +73,9 @@ class ChatService {
 
       // Update the session's lastMessage and updatedAt for the history list preview
       await sessionRef.update({
-        'lastMessage': message.text.isNotEmpty ? message.text : 'Đã gửi một thẻ chức năng',
+        'lastMessage': message.text.isNotEmpty
+            ? message.text
+            : 'Đã gửi một thẻ chức năng',
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {

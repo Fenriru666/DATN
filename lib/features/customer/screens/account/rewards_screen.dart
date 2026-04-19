@@ -93,7 +93,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text("Hoan hô! 🎉"),
+            title: const Text("Hoan hô! ðŸŽ‰"),
             content: Text(
               "Đổi quà thành công! Mã Code của bạn là: ${reward['code']}\n(Mã đã được tự động lưu vào Trung tâm thông báo)",
             ),
@@ -186,7 +186,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        "Điểm Tích Lũy",
+                        "Điểm Tích LÅ©y",
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                       Text(
@@ -237,7 +237,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
-                
+
                 // Lucky Wheel Banner
                 GestureDetector(
                   onTap: () {
@@ -325,7 +325,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
                     );
                   },
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 0,
+                    ),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(

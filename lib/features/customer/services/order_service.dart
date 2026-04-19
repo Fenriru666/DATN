@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/core/models/order_model.dart';
 import 'package:datn/core/services/notification_sender_service.dart';
 import 'package:datn/core/utils/tier_calculator.dart';
@@ -8,17 +8,17 @@ import 'package:datn/features/customer/services/wallet_service.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
   final WalletService _walletService = WalletService();
 
   // Stream for Ongoing Orders (Pending, On the way, etc.)
   Stream<List<OrderModel>> getOngoingOrders() {
-    final user = _auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return const Stream.empty();
 
     return _firestore
         .collection('orders')
-        .where('userId', isEqualTo: user.uid)
+        .where('userId', isEqualTo: user.id)
         .where('status', whereNotIn: ['Delivered', 'Cancelled', 'Completed'])
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -31,12 +31,12 @@ class OrderService {
 
   // Stream for Order History (Delivered, Cancelled, Completed)
   Stream<List<OrderModel>> getOrderHistory() {
-    final user = _auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return const Stream.empty();
 
     return _firestore
         .collection('orders')
-        .where('userId', isEqualTo: user.uid)
+        .where('userId', isEqualTo: user.id)
         .where('status', whereIn: ['Delivered', 'Cancelled', 'Completed'])
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -51,12 +51,12 @@ class OrderService {
   Stream<List<OrderModel>> getRecentOrders() => getOngoingOrders();
 
   Stream<OrderModel?> getLatestOrder() {
-    final user = _auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return const Stream.empty();
 
     return _firestore
         .collection('orders')
-        .where('userId', isEqualTo: user.uid)
+        .where('userId', isEqualTo: user.id)
         .orderBy('createdAt', descending: true)
         .limit(1)
         .snapshots()
@@ -113,7 +113,8 @@ class OrderService {
         await NotificationSenderService.notifyUser(
           targetUserId: userId,
           title: "Hoàn thành đơn hàng",
-          body: "Đơn hàng của bạn đã hoàn thành. Cảm ơn vì đã sử dụng dịch vụ!",
+          body:
+              "Đơn hàng của bạn đã hoàn thành. Cảm ơn vì đã sử dụng dịch vụ!",
         );
       }
 
@@ -143,7 +144,7 @@ class OrderService {
               userId: userId,
               title: "Tích điểm thành công!",
               body:
-                  "Bạn vừa nhận được +$earnedPoints Điểm Thưởng từ chuyến đi/đơn hàng. Tích lũy để đổi quà nhé!",
+                  "Bạn vừa nhận được +$earnedPoints Điểm Thưởng từ chuyến đi/đơn hàng. Tích lÅ©y để đổi quà nhé!",
               type: "promo",
               relatedId: orderId,
             );
@@ -153,7 +154,7 @@ class OrderService {
           if (newTier != currentTier) {
             await NotificationService().sendInAppNotification(
               userId: userId,
-              title: "Chúc mừng Thăng Hạng! 🎉",
+              title: "Chúc mừng Thăng Hạng! ðŸŽ‰",
               body:
                   "Wow! Hạng thành viên của bạn đã vươn lên mốc $newTier. Khám phá các ưu đãi đặc quyền mới ngay!",
               type: "system",
@@ -274,16 +275,16 @@ class OrderService {
   }
 
   Future<String> createOrder(OrderModel order) async {
-    final user = _auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) throw Exception("User not logged in");
 
     // Deduct loyalty points if used
     if (order.usedPoints != null && order.usedPoints! > 0) {
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final userDoc = await _firestore.collection('users').doc(user.id).get();
       if (userDoc.exists) {
         final currentPoints = (userDoc.data()?['loyaltyPoints'] ?? 0) as int;
         if (currentPoints >= order.usedPoints!) {
-          await _firestore.collection('users').doc(user.uid).update({
+          await _firestore.collection('users').doc(user.id).update({
             'loyaltyPoints': FieldValue.increment(-order.usedPoints!),
           });
         } else {
@@ -293,7 +294,7 @@ class OrderService {
     }
 
     // Process Wallet Payment Priority 20
-    if (order.paymentMethod == 'My Wallet') {
+    if (order.paymentMethod == 'My Wallet' || order.paymentMethod == 'Ví của tôi') {
       try {
         final paymentType = order.serviceType == 'Food' ? 'food' : 'ride';
         final description = order.serviceType == 'Food'
@@ -312,7 +313,7 @@ class OrderService {
 
     // Ensure the order is linked to the current user
     final orderData = order.toMap();
-    orderData['userId'] = user.uid;
+    orderData['userId'] = user.id;
     orderData.remove('id'); // Let Firestore generate ID
 
     final docRef = await _firestore.collection('orders').add(orderData);

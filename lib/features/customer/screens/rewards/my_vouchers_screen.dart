@@ -40,10 +40,7 @@ class MyVouchersScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'Chưa có mã giảm giá nào',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -65,7 +62,7 @@ class MyVouchersScreen extends StatelessWidget {
 
   Widget _buildVoucherCard(BuildContext context, PromotionModel promo) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -112,7 +109,7 @@ class MyVouchersScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Right side: Details
           Expanded(
             child: Padding(
@@ -134,11 +131,17 @@ class MyVouchersScreen extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.copy, size: 20, color: Colors.grey),
+                        icon: const Icon(
+                          Icons.copy,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: promo.code));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Đã sao chép mã: ${promo.code}')),
+                            SnackBar(
+                              content: Text('Đã sao chép mã: ${promo.code}'),
+                            ),
                           );
                         },
                       ),
@@ -147,10 +150,7 @@ class MyVouchersScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Đơn tối thiểu: ${promo.minOrderValue.toStringAsFixed(0)}đ\nGiảm tối đa: ${promo.maxDiscount.toStringAsFixed(0)}đ',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
                   ),
                   const SizedBox(height: 8),
                   Row(

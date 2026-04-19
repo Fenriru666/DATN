@@ -19,7 +19,7 @@ import 'package:datn/features/customer/screens/account/saved_places_screen.dart'
 import 'package:datn/core/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 
 class RideScreen extends StatefulWidget {
   final String? initialDestination;
@@ -173,10 +173,14 @@ class _RideScreenState extends State<RideScreen> {
         setState(() => _isSearching = true);
       }
       try {
-        final pickupResults = await _goongService.searchPlaces(widget.initialPickup!);
+        final pickupResults = await _goongService.searchPlaces(
+          widget.initialPickup!,
+        );
         if (pickupResults.isNotEmpty) {
           final firstResult = pickupResults.first;
-          final latLng = await _goongService.getPlaceDetail(firstResult.placeId);
+          final latLng = await _goongService.getPlaceDetail(
+            firstResult.placeId,
+          );
           if (latLng != null) {
             _pickupLatLng = latLng;
             _pickupLocation = firstResult.description;
@@ -200,32 +204,40 @@ class _RideScreenState extends State<RideScreen> {
     }
 
     // [PRIORITY 45] - Auto-route if initialDestination is provided from AI
-    if (widget.initialDestination != null && widget.initialDestination!.isNotEmpty) {
+    if (widget.initialDestination != null &&
+        widget.initialDestination!.isNotEmpty) {
       if (mounted) {
         setState(() {
-          _isSearching = true; 
+          _isSearching = true;
         });
       }
-      
+
       try {
-        final results = await _goongService.searchPlaces(widget.initialDestination!);
+        final results = await _goongService.searchPlaces(
+          widget.initialDestination!,
+        );
         if (results.isNotEmpty) {
           final firstResult = results.first;
-          final destLatLng = await _goongService.getPlaceDetail(firstResult.placeId);
-          
+          final destLatLng = await _goongService.getPlaceDetail(
+            firstResult.placeId,
+          );
+
           if (destLatLng != null) {
-            final route = await _goongService.getRoute(_pickupLatLng!, destLatLng);
-            
+            final route = await _goongService.getRoute(
+              _pickupLatLng!,
+              destLatLng,
+            );
+
             if (mounted) {
               setState(() {
                 _dropoffLocation = firstResult.description;
                 _dropoffLatLng = destLatLng;
                 _selectedOptionIndex = -1;
-                
+
                 if (route != null) {
                   _distanceKm = route.distanceValue / 1000.0;
                   _rideOptions = _rideService.calculateRidePrices(_distanceKm);
-                  
+
                   _polylines.clear();
                   _polylines.add(
                     Polyline(
@@ -247,7 +259,7 @@ class _RideScreenState extends State<RideScreen> {
                   _distanceKm = distanceInMeters / 1000.0;
                   _rideOptions = _rideService.calculateRidePrices(_distanceKm);
                 }
-                
+
                 _updateMarkers();
               });
             }
@@ -580,7 +592,7 @@ class _RideScreenState extends State<RideScreen> {
 
   Future<void> _handleSavedPlaceSelection(String label) async {
     if (_currentUserData == null) return;
-    
+
     final savedPlaces = _currentUserData!.savedPlaces;
     if (savedPlaces == null || !savedPlaces.containsKey(label)) {
       // Navigate to setup
@@ -903,7 +915,7 @@ class _RideScreenState extends State<RideScreen> {
                                   ],
                                 ),
                                 Text(
-                                  '${driver['rating'].toStringAsFixed(1)} ★ (${driver['ratingCount']} đánh giá) • ${(driver['distanceKm'] as double).toStringAsFixed(1)} km',
+                                  '${driver['rating'].toStringAsFixed(1)} â˜… (${driver['ratingCount']} đánh giá) â€¢ ${(driver['distanceKm'] as double).toStringAsFixed(1)} km',
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ],
@@ -1011,7 +1023,9 @@ class _RideScreenState extends State<RideScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Thời gian hẹn phải cách hiện tại ít nhất 15 phút."),
+            content: Text(
+              "Thời gian hẹn phải cách hiện tại ít nhất 15 phút.",
+            ),
           ),
         );
       }
@@ -1167,7 +1181,7 @@ class _RideScreenState extends State<RideScreen> {
                     ),
                   ),
                   Text(
-                    '${option.estimatedTime} • ${_distanceKm.toStringAsFixed(1)} km',
+                    '${option.estimatedTime} â€¢ ${_distanceKm.toStringAsFixed(1)} km',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -1266,6 +1280,24 @@ class _RideScreenState extends State<RideScreen> {
             ),
           ),
 
+          // Current Location Button
+          Positioned(
+            top: 50,
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: 'current_location_ride',
+              backgroundColor: Theme.of(context).cardColor,
+              mini: true,
+              onPressed: () async {
+                await _initLocation();
+                if (_pickupLatLng != null) {
+                  _mapController.move(_pickupLatLng!, 15);
+                }
+              },
+              child: const Icon(Icons.my_location, color: Colors.blue),
+            ),
+          ),
+
           // 3. Floating Address Card
           if (!_isSearching)
             Positioned(
@@ -1348,7 +1380,9 @@ class _RideScreenState extends State<RideScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                 decoration: BoxDecoration(
                   color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(30),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black12,
@@ -1370,7 +1404,7 @@ class _RideScreenState extends State<RideScreen> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      "Choose a ride",
+                      "Chọn chuyến xe",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -1401,7 +1435,7 @@ class _RideScreenState extends State<RideScreen> {
                         scrollDirection: Axis.horizontal,
                         children: [
                           _buildPaymentOption(
-                            'Cash',
+                            'Tiền mặt',
                             Icons.money,
                             Colors.green,
                           ),
@@ -1414,7 +1448,7 @@ class _RideScreenState extends State<RideScreen> {
                           const SizedBox(width: 8),
                           const SizedBox(width: 8),
                           _buildPaymentOption(
-                            'My Wallet',
+                            'Ví của tôi',
                             Icons.account_balance_wallet,
                             Colors.purple,
                           ),
@@ -1432,7 +1466,7 @@ class _RideScreenState extends State<RideScreen> {
                             child: TextField(
                               controller: _promoController,
                               decoration: InputDecoration(
-                                hintText: 'Promo Code',
+                                hintText: 'Mã khuyến mãi',
                                 isDense: true,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 12,
@@ -1465,13 +1499,13 @@ class _RideScreenState extends State<RideScreen> {
                                 });
                                 UIHelpers.showSnackBar(
                                   context,
-                                  'Promo applied successfully!',
+                                  'Đã áp dụng mã thành công!',
                                 );
                               } catch (e) {
                                 if (!context.mounted) return;
                                 UIHelpers.showErrorDialog(
                                   context,
-                                  'Invalid Promo',
+                                  'Mã không hợp lệ',
                                   e.toString(),
                                 );
                                 setModalState(() {
@@ -1495,7 +1529,7 @@ class _RideScreenState extends State<RideScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            child: const Text('Apply'),
+                            child: const Text('Áp dụng'),
                           ),
                         ],
                       ),
@@ -1735,10 +1769,7 @@ class _RideScreenState extends State<RideScreen> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -1775,7 +1806,9 @@ class _LocationInputRow extends StatelessWidget {
               fontWeight: isDest && text == "Where to?"
                   ? FontWeight.normal
                   : FontWeight.bold,
-              color: isDest && text == "Where to?" ? Colors.grey : (isDark ? Colors.white : Colors.black),
+              color: isDest && text == "Where to?"
+                  ? Colors.grey
+                  : (isDark ? Colors.white : Colors.black),
               overflow: TextOverflow.ellipsis,
             ),
           ),

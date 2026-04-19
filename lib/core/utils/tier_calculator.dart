@@ -1,4 +1,4 @@
-class TierCalculator {
+﻿class TierCalculator {
   static const String bronze = 'Bronze';
   static const String silver = 'Silver';
   static const String gold = 'Gold';

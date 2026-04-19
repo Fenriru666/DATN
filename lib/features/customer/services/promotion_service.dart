@@ -46,13 +46,16 @@ class PromotionService {
     return _firestore
         .collection('promotions')
         .where('isActive', isEqualTo: true)
-        .where('expirationDate', isGreaterThanOrEqualTo: DateTime.now().toIso8601String())
+        .where(
+          'expirationDate',
+          isGreaterThanOrEqualTo: DateTime.now().toIso8601String(),
+        )
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => PromotionModel.fromMap(doc.data(), doc.id))
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => PromotionModel.fromMap(doc.data(), doc.id))
+              .toList();
+        });
   }
 
   /// Test utility to seed some promo codes

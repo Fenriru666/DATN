@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:datn/core/models/order_model.dart';
@@ -265,7 +265,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              "🚨 CẢNH BÁO ĐÃ ĐƯỢC GỬI ĐẾN TRUNG TÂM!",
+                              "ðŸš¨ CẢNH BÁO ĐÃ ĐƯỢC GỬI ĐẾN TRUNG TÂM!",
                             ),
                             backgroundColor: Colors.red,
                             duration: Duration(seconds: 5),

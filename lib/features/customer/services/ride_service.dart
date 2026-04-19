@@ -1,4 +1,4 @@
-class RideService {
+﻿class RideService {
   // Base prices and per km rates based on user request details
 
   // Bike Rates

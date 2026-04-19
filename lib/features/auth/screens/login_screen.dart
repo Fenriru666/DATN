@@ -2,7 +2,7 @@ import 'package:datn/features/auth/services/auth_service.dart';
 import 'package:datn/features/auth/screens/register_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,7 +50,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (errorStr.contains('invalid login credentials')) {
         msg = "Sai email hoặc mật khẩu (Hoặc User chưa tồn tại).";
       } else if (errorStr.contains('email not confirmed')) {
-        msg = "Tài khoản chưa được xác thực Email. Vui lòng tắt tính năng Confirm Email trên Supabase.";
+        msg =
+            "Tài khoản chưa được xác thực Email. Vui lòng tắt tính năng Confirm Email trên Supabase.";
       } else {
         msg = "Lỗi Supabase: ${e.toString()}"; // Show raw error for debugging
       }
@@ -78,7 +79,10 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 40.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

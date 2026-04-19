@@ -1,4 +1,4 @@
-import 'package:datn/features/auth/screens/root_dispatcher.dart';
+﻿import 'package:datn/features/auth/screens/root_dispatcher.dart';
 import 'package:datn/features/auth/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/features/chatbot/screens/ai_history_screen.dart';
@@ -389,7 +389,7 @@ class _DriverRequestsTabState extends State<_DriverRequestsTab> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "${order.totalPrice.toInt()} ₫",
+                                        "${order.totalPrice.toInt()} đ",
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 22,
@@ -678,7 +678,7 @@ class _DriverActivityTab extends StatelessWidget {
                       ),
                       title: Text("Cuốc xe #${order.id.substring(0, 5)}"),
                       subtitle: Text(
-                        "Hoàn thành • ${order.totalPrice.toStringAsFixed(0)}đ",
+                        "Hoàn thành â€¢ ${order.totalPrice.toStringAsFixed(0)}đ",
                       ),
                       trailing: Text(dateStr),
                     );
@@ -807,7 +807,7 @@ class _DriverProfileTab extends StatelessWidget {
                           ),
                           _buildStatItem(
                             "Đánh giá",
-                            "${driver.rating.toStringAsFixed(1)} ★",
+                            "${driver.rating.toStringAsFixed(1)} â˜…",
                             subtitle: "(${driver.ratingCount} lượt)",
                           ),
                         ],

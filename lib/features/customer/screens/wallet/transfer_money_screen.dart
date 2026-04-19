@@ -111,13 +111,8 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Chuyển tiền'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(title: const Text('Chuyển tiền')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -141,7 +136,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     onSubmitted: (_) => _searchUser(),
                   ),
@@ -183,7 +178,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.green.withAlpha(50)),
                   boxShadow: [
@@ -262,7 +257,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                 ),
               ),
               const SizedBox(height: 16),
@@ -293,7 +288,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                 ),
                 maxLines: 2,
               ),

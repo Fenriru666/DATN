@@ -4,7 +4,7 @@ import 'package:datn/features/customer/services/restaurant_service.dart';
 import 'package:datn/core/models/restaurant_model.dart';
 import 'package:datn/features/customer/screens/location/location_selection_screen.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 
 class FoodScreen extends StatefulWidget {
   final String? initialLocation;
@@ -104,9 +104,15 @@ class _FoodScreenState extends State<FoodScreen> {
               // Dynamic Search Bar
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E1E1E)
+                      : Colors.grey[100],
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: TextField(
                   controller: _searchController,
@@ -381,10 +387,14 @@ class _CategoryItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFFE724C) : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+              color: isSelected
+                  ? const Color(0xFFFE724C)
+                  : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? Colors.transparent : (isDark ? Colors.grey[800]! : Colors.grey[200]!),
+                color: isSelected
+                    ? Colors.transparent
+                    : (isDark ? Colors.grey[800]! : Colors.grey[200]!),
                 width: 1.5,
               ),
               boxShadow: isSelected
@@ -406,7 +416,9 @@ class _CategoryItem extends StatelessWidget {
             child: Icon(
               icon,
               size: 28,
-              color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+              color: isSelected
+                  ? Colors.white
+                  : (isDark ? Colors.white : Colors.black87),
             ),
           ),
           const SizedBox(height: 10),
@@ -415,7 +427,9 @@ class _CategoryItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected ? const Color(0xFFFE724C) : (isDark ? Colors.grey[400] : Colors.black54),
+              color: isSelected
+                  ? const Color(0xFFFE724C)
+                  : (isDark ? Colors.grey[400] : Colors.black54),
             ),
           ),
         ],
@@ -460,7 +474,9 @@ class _RestaurantCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withValues(alpha: 0.1),
@@ -548,7 +564,9 @@ class _RestaurantCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor.withValues(alpha: 0.9),
+                          color: Theme.of(
+                            context,
+                          ).cardColor.withValues(alpha: 0.9),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -626,13 +644,21 @@ class _RestaurantCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[100],
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey[800]
+                                  : Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               tag,
                               style: TextStyle(
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700],
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey[300]
+                                    : Colors.grey[700],
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),

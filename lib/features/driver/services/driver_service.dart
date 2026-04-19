@@ -116,7 +116,10 @@ class DriverService {
         .get();
 
     if (snapshot.docs.isNotEmpty) {
-      return OrderModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
+      return OrderModel.fromMap(
+        snapshot.docs.first.data(),
+        snapshot.docs.first.id,
+      );
     }
     return null;
   }

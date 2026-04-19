@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/core/models/emergency_model.dart';
 import 'package:datn/core/services/notification_sender_service.dart';
 
@@ -18,7 +18,7 @@ class EmergencyService {
       // Nhưng để demo nhanh, ta gửi qua topic
       await NotificationSenderService.sendTopicNotification(
         topic: 'admin_alerts',
-        title: "🚨 BÁO ĐỘNG SOS 🚨",
+        title: "ðŸš¨ BÁO ĐỘNG SOS ðŸš¨",
         body:
             "Phát hiện tín hiệu cầu cứu từ [${emergencyData.userRole}]. Vui lòng kiểm tra khẩn cấp!",
       );

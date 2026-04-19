@@ -1,12 +1,11 @@
 import 'package:datn/features/auth/screens/root_dispatcher.dart';
 import 'package:datn/core/services/translation_service.dart';
 import 'package:datn/features/auth/services/user_seeder.dart';
-import 'package:datn/core/services/data_seeder.dart';
 import 'package:datn/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:datn/core/services/push_notification_service.dart';
@@ -32,9 +31,9 @@ void main() async {
     );
     debugPrint("DEBUG: Supabase successfully initialized.");
 
-    // Force logout on every app start for testing purposes
-    await Supabase.instance.client.auth.signOut();
-    debugPrint("DEBUG: Forced Supabase sign out on startup.");
+    // Remove force logout to keep user sessions alive and speed up launch
+    // await Supabase.instance.client.auth.signOut();
+    // debugPrint("DEBUG: Forced Supabase sign out on startup.");
 
     // Check if any apps are already initialized (e.g. from hot restart)
     if (Firebase.apps.isNotEmpty) {
@@ -73,11 +72,12 @@ void main() async {
 
     try {
       if (Firebase.apps.isNotEmpty) {
+        // Tự động kiểm tra và khởi tạo dữ liệu
         debugPrint("DEBUG: Seeding users...");
         await UserSeeder().seedUsers();
-        debugPrint("DEBUG: Seeding data...");
-        await DataSeeder.seed();
-        debugPrint("DEBUG: Seeding complete.");
+        // debugPrint("DEBUG: Seeding data...");
+        // await DataSeeder.seed();
+        // debugPrint("DEBUG: Seeding complete.");
       } else {
         debugPrint("CRITICAL: Firebase initialized but app list is empty!");
       }

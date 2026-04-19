@@ -1,4 +1,4 @@
-class LocalDriverDatabase {
+﻿class LocalDriverDatabase {
   // 10 Locations
   // 1. Chợ Bến Thành (Quận 1): 10.7725, 106.6980
   // 2. Landmark 81 (Bình Thạnh): 10.7950, 106.7218
@@ -81,7 +81,7 @@ class LocalDriverDatabase {
     // 4. Cầu Ánh Sao, Phú Mỹ Hưng
     {
       'id': 'drv_4_bike',
-      'name': 'Tuấn Vũ (Cầu Ánh Sao)',
+      'name': 'Tuấn VÅ© (Cầu Ánh Sao)',
       'providerName': 'GrabBike',
       'type': 'bike',
       'rating': 4.9,
@@ -169,7 +169,7 @@ class LocalDriverDatabase {
     // 8. AEON Mall Bình Tân
     {
       'id': 'drv_8_bike',
-      'name': 'Mạnh Dũng (AEON Bình Tân)',
+      'name': 'Mạnh DÅ©ng (AEON Bình Tân)',
       'providerName': 'BeBike',
       'type': 'bike',
       'rating': 4.8,

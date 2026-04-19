@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:datn/core/models/order_model.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 import 'package:datn/features/customer/screens/activity/widgets/review_dialog.dart';
 
 class OrderDetailsScreen extends StatefulWidget {

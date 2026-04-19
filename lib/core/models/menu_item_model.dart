@@ -1,4 +1,4 @@
-class MenuItemModel {
+﻿class MenuItemModel {
   final String id;
   final String name;
   final String description;

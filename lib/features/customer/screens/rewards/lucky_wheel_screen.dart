@@ -15,7 +15,7 @@ class LuckyWheelScreen extends StatefulWidget {
 class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
   final StreamController<int> _selectedController = StreamController<int>();
   final LuckyWheelService _wheelService = LuckyWheelService();
-  
+
   UserModel? _currentUser;
   bool _isSpinning = false;
   String? _errorMessage;
@@ -60,6 +60,8 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
       _errorMessage = null;
     });
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       // 1. Roll the dice on the server
       final resultIndex = await _wheelService.spinWheel(_currentUser!.uid);
@@ -71,16 +73,16 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
       // Temporarily deduct points on UI immediately for feedback
       setState(() {
         _currentUser = _currentUser!.copyWith(
-          loyaltyPoints: _currentUser!.loyaltyPoints - LuckyWheelService.pointsPerSpin,
+          loyaltyPoints:
+              _currentUser!.loyaltyPoints - LuckyWheelService.pointsPerSpin,
         );
       });
-
     } catch (e) {
       setState(() {
         _isSpinning = false;
         _errorMessage = "Lỗi khi quay: ${e.toString()}";
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text(_errorMessage!), backgroundColor: Colors.red),
       );
     }
@@ -92,7 +94,7 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
     });
 
     final prize = LuckyWheelService.wheelItems[_finalIndex];
-    
+
     // Refresh user to get updated wallet/points
     await _loadUser();
 
@@ -100,16 +102,22 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
-            prize['type'] == 'WALLET' ? '🎉 Trúng Thưởng! 🎉' : 'Rất Tiếc! 😢',
+            prize['type'] == 'WALLET'
+                ? 'ðŸŽ‰ Trúng Thưởng! ðŸŽ‰'
+                : 'Rất Tiếc! ðŸ˜¢',
             textAlign: TextAlign.center,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                prize['type'] == 'WALLET' ? Icons.monetization_on : Icons.sentiment_dissatisfied,
+                prize['type'] == 'WALLET'
+                    ? Icons.monetization_on
+                    : Icons.sentiment_dissatisfied,
                 color: prize['type'] == 'WALLET' ? Colors.amber : Colors.grey,
                 size: 64,
               ),
@@ -137,10 +145,18 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFE724C),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
                 ),
-                child: const Text('Xác nhận', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Xác nhận',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],
@@ -186,7 +202,10 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
                   children: [
                     const Text(
                       'Điểm hiện tại:',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Row(
                       children: [
@@ -243,7 +262,10 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFE724C),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 48,
+                    vertical: 16,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -253,7 +275,10 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
                       )
                     : Row(
                         mainAxisSize: MainAxisSize.min,
@@ -262,7 +287,10 @@ class _LuckyWheelScreenState extends State<LuckyWheelScreen> {
                           SizedBox(width: 8),
                           Text(
                             'QUAY NGAY (-50 ĐIỂM)',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),

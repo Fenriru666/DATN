@@ -11,13 +11,12 @@ import 'package:datn/features/customer/screens/search/global_search_screen.dart'
 import 'package:datn/features/chatbot/screens/ai_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:datn/core/widgets/pulsing_fab.dart';
 import 'package:datn/features/customer/screens/activity/order_details_screen.dart';
 import 'package:datn/features/shared/screens/notification_screen.dart';
 import 'package:datn/core/services/notification_service.dart';
-import 'package:datn/features/auth/services/auth_service.dart';
 import 'package:datn/features/customer/screens/account/address_book_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/features/customer/services/user_address_service.dart';
@@ -181,11 +180,14 @@ class _HomeDashboardState extends State<_HomeDashboard> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    
-    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
       try {
         final pos = await Geolocator.getCurrentPosition();
-        final address = await GoongService().reverseGeocode(LatLng(pos.latitude, pos.longitude));
+        final address = await GoongService().reverseGeocode(
+          LatLng(pos.latitude, pos.longitude),
+        );
         if (mounted) {
           setState(() {
             _currentAddress = address;
@@ -213,7 +215,7 @@ class _HomeDashboardState extends State<_HomeDashboard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -223,7 +225,7 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                 child: Text(
                   AppLocalizations.of(context)!.selectLocationTitle,
                   style: TextStyle(
-                    fontSize: 18, 
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black,
                   ),
@@ -236,34 +238,47 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 ),
                 onTap: () async {
-                  Navigator.pop(context);
-                  
+                  Navigator.pop(sheetContext);
+
                   if (mounted) {
                     setState(() {
-                      _currentAddress = AppLocalizations.of(context)!.gettingLocation;
+                      _currentAddress = AppLocalizations.of(
+                        context,
+                      )!.gettingLocation;
                     });
                   }
 
-                  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                  bool serviceEnabled =
+                      await Geolocator.isLocationServiceEnabled();
                   if (!serviceEnabled) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Vui lòng bật dịch vụ định vị (GPS) trong cài đặt thiết bị.')),
+                        const SnackBar(
+                          content: Text(
+                            'Vui lòng bật dịch vụ định vị (GPS) trong cài đặt thiết bị.',
+                          ),
+                        ),
                       );
                       setState(() {
-                        _currentAddress = AppLocalizations.of(context)!.currentLocation;
+                        _currentAddress = AppLocalizations.of(
+                          context,
+                        )!.currentLocation;
                       });
                     }
                     return;
                   }
 
-                  LocationPermission permission = await Geolocator.checkPermission();
+                  LocationPermission permission =
+                      await Geolocator.checkPermission();
                   if (permission == LocationPermission.denied) {
                     permission = await Geolocator.requestPermission();
-                    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+                    if (permission == LocationPermission.denied ||
+                        permission == LocationPermission.deniedForever) {
                       if (mounted) {
                         setState(() {
-                          _currentAddress = AppLocalizations.of(context)!.currentLocation;
+                          _currentAddress = AppLocalizations.of(
+                            context,
+                          )!.currentLocation;
                         });
                       }
                       return;
@@ -272,7 +287,9 @@ class _HomeDashboardState extends State<_HomeDashboard> {
 
                   try {
                     final pos = await Geolocator.getCurrentPosition();
-                    final address = await GoongService().reverseGeocode(LatLng(pos.latitude, pos.longitude));
+                    final address = await GoongService().reverseGeocode(
+                      LatLng(pos.latitude, pos.longitude),
+                    );
                     if (mounted) {
                       setState(() {
                         _currentAddress = address;
@@ -281,7 +298,9 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                   } catch (e) {
                     if (mounted) {
                       setState(() {
-                        _currentAddress = AppLocalizations.of(context)!.currentLocation; // Fallback
+                        _currentAddress = AppLocalizations.of(
+                          context,
+                        )!.currentLocation; // Fallback
                       });
                     }
                   }
@@ -296,20 +315,31 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     final addresses = snapshot.data ?? [];
-                    
+
                     return ListView.builder(
-                      itemCount: addresses.length + 1, // +1 for "Add New Address"
+                      itemCount:
+                          addresses.length + 1, // +1 for "Add New Address"
                       itemBuilder: (context, index) {
                         if (index == addresses.length) {
                           return ListTile(
-                            leading: const Icon(Icons.add_location_alt_outlined, color: Colors.grey),
+                            leading: const Icon(
+                              Icons.add_location_alt_outlined,
+                              color: Colors.grey,
+                            ),
                             title: Text(
                               AppLocalizations.of(context)!.addNewAddress,
-                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
                             ),
                             onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const AddressBookScreen()));
+                              Navigator.pop(sheetContext);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AddressBookScreen(),
+                                ),
+                              );
                             },
                           );
                         }
@@ -317,26 +347,37 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                         final address = addresses[index];
                         return ListTile(
                           leading: Icon(
-                            address.name.toLowerCase() == 'nhà riêng' || address.name.toLowerCase() == 'home' 
-                                ? Icons.home 
-                                : (address.name.toLowerCase() == 'công ty' || address.name.toLowerCase() == 'work' ? Icons.work : Icons.location_on), 
+                            address.name.toLowerCase() == 'nhà riêng' ||
+                                    address.name.toLowerCase() == 'home'
+                                ? Icons.home
+                                : (address.name.toLowerCase() == 'công ty' ||
+                                          address.name.toLowerCase() == 'work'
+                                      ? Icons.work
+                                      : Icons.location_on),
                             color: const Color(0xFFFE724C),
                           ),
                           title: Text(
                             address.name,
-                            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
                           ),
                           subtitle: Text(
                             address.fullAddress,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
                           ),
                           onTap: () {
                             setState(() {
-                              _currentAddress = address.name; // Use the name or address as you prefer
+                              _currentAddress = address
+                                  .name; // Use the name or address as you prefer
                             });
-                            Navigator.pop(context);
+                            Navigator.pop(sheetContext);
                           },
                         );
                       },
@@ -370,7 +411,10 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                     children: [
                       Text(
                         AppLocalizations.of(context)!.currentLocation,
-                        style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 12,
+                        ),
                       ),
                       GestureDetector(
                         onTap: _showLocationPicker,
@@ -410,7 +454,8 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                             size: 28,
                           ),
                           onPressed: () {
-                            final user = Supabase.instance.client.auth.currentUser;
+                            final user =
+                                Supabase.instance.client.auth.currentUser;
                             if (user != null) {
                               Navigator.push(
                                 context,
@@ -427,7 +472,8 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                           top: 8,
                           child: StreamBuilder<int>(
                             stream: NotificationService().streamUnreadCount(
-                              Supabase.instance.client.auth.currentUser?.id ?? '',
+                              Supabase.instance.client.auth.currentUser?.id ??
+                                  '',
                             ),
                             builder: (context, snapshot) {
                               final count = snapshot.data ?? 0;
@@ -508,7 +554,10 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                     label: AppLocalizations.of(context)!.serviceRide,
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => RideScreen(initialPickup: _currentAddress)),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            RideScreen(initialPickup: _currentAddress),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -518,7 +567,10 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                     label: AppLocalizations.of(context)!.serviceFood,
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => FoodScreen(initialLocation: _currentAddress)),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            FoodScreen(initialLocation: _currentAddress),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -528,7 +580,10 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                     label: AppLocalizations.of(context)!.serviceMart,
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => MartScreen(initialLocation: _currentAddress)),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            MartScreen(initialLocation: _currentAddress),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -538,7 +593,10 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                     label: AppLocalizations.of(context)!.serviceCourier,
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => CourierScreen(initialLocation: _currentAddress)),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            CourierScreen(initialLocation: _currentAddress),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -614,7 +672,11 @@ class _HomeDashboardState extends State<_HomeDashboard> {
             // Recent Activity
             Text(
               AppLocalizations.of(context)!.recentActivity,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
             ),
             const SizedBox(height: 10),
             StreamBuilder<OrderModel?>(
@@ -636,7 +698,9 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                     child: Center(
                       child: Text(
                         AppLocalizations.of(context)!.noRecentActivity,
-                        style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
                       ),
                     ),
                   );
@@ -697,7 +761,11 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                               ),
                               Text(
                                 order.itemsSummary,
-                                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -719,7 +787,9 @@ class _HomeDashboardState extends State<_HomeDashboard> {
                               style: TextStyle(
                                 color: order.status == 'Delivered'
                                     ? Colors.green
-                                    : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                                    : (isDark
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600]),
                                 fontSize: 12,
                               ),
                             ),
@@ -744,8 +814,16 @@ class _HomeDashboardState extends State<_HomeDashboard> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
-        title: Text(AppLocalizations.of(context)!.comingSoonTitle, style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color)),
-        content: Text(AppLocalizations.of(context)!.comingSoonMessage, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+        title: Text(
+          AppLocalizations.of(context)!.comingSoonTitle,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
+        content: Text(
+          AppLocalizations.of(context)!.comingSoonMessage,
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -796,7 +874,13 @@ class _ServiceItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontWeight: FontWeight.w500, color: isDark ? Colors.white : Colors.black)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
         ],
       ),
     );
@@ -820,7 +904,11 @@ class _PromoCard extends StatelessWidget {
       child: Center(
         child: Text(
           title,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
         ),
       ),
     );

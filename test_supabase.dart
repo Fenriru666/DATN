@@ -11,7 +11,7 @@ void main() async {
       email: 'test1@gmail.com',
       password: '123456',
     );
-    print("User authenticated: " + (res.user?.id ?? 'null'));
+    print("User authenticated: ${res.user?.id ?? 'null'}");
     
     final data = await supabase.from('users').select('role, id').limit(5);
     print("Existing roles in database:");

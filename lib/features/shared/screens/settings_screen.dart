@@ -79,7 +79,10 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+            title: const Text(
+              'Đăng xuất',
+              style: TextStyle(color: Colors.red),
+            ),
             onTap: () async {
               // Log out logic
               await authService.signOut();

@@ -42,10 +42,7 @@ class PartnerReviewScreen extends StatelessWidget {
 
           // Parse and filter locally
           final allOrders = snapshot.data!.map((data) {
-            return OrderModel.fromMap(
-              data,
-              data['id'],
-            );
+            return OrderModel.fromMap(data, data['id']);
           }).toList();
 
           // Client-side sort by createdAt descending
@@ -130,7 +127,7 @@ class PartnerReviewScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Chuyến: ${order.id.substring(0, 8)} • ${order.serviceType}',
+                            'Chuyến: ${order.id.substring(0, 8)} â€¢ ${order.serviceType}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,

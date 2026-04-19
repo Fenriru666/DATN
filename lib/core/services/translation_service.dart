@@ -8,12 +8,12 @@ class TranslationService extends ChangeNotifier {
     _loadLanguage();
   }
 
-  Locale _locale = const Locale('en');
+  Locale _locale = const Locale('vi');
   Locale get locale => _locale;
 
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
-    final langCode = prefs.getString('language_code') ?? 'en';
+    final langCode = prefs.getString('language_code') ?? 'vi';
     _locale = Locale(langCode);
     notifyListeners();
   }

@@ -17,9 +17,9 @@ void main() async {
     for (var r in rolesToTest) {
       try {
         await supabase.from('users').update({'role': r}).eq('id', uid!);
-        print("Success setting role: " + r);
+        print("Success setting role: $r");
       } catch (e) {
-        print("Failed to set role " + r + ": " + e.toString());
+        print("Failed to set role $r: $e");
       }
     }
     
@@ -27,6 +27,6 @@ void main() async {
     await supabase.from('users').update({'role': 'customer'}).eq('id', uid!);
 
   } catch(e) {
-    print("Error: " + e.toString());
+    print("Error: $e");
   }
 }

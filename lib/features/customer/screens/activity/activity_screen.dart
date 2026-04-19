@@ -15,7 +15,10 @@ class ActivityScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(
             'Activity',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
           ),
           centerTitle: false,
           elevation: 0,
@@ -223,7 +226,10 @@ class _ActivityItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13),
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontSize: 13,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -231,7 +237,10 @@ class _ActivityItem extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       address,
-                      style: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[500], fontSize: 11),
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[500] : Colors.grey[500],
+                        fontSize: 11,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -260,7 +269,10 @@ class _ActivityItem extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         time,
-                        style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[400], fontSize: 12),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[400],
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -280,7 +292,11 @@ class _ActivityItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 if (status == 'Completed' || status == 'Delivered')
-                  Icon(Icons.refresh, color: isDark ? Colors.grey[400] : Colors.grey, size: 20),
+                  Icon(
+                    Icons.refresh,
+                    color: isDark ? Colors.grey[400] : Colors.grey,
+                    size: 20,
+                  ),
               ],
             ),
           ],

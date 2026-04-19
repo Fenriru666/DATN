@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:datn/features/merchant/services/merchant_service.dart';
 import 'package:datn/core/models/order_model.dart';
 import 'package:intl/intl.dart';
@@ -111,7 +111,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
                       const Divider(),
                       // Summary
                       Text(
-                        order.itemsSummary ?? 'Không có thông tin món',
+                        order.itemsSummary,
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 8),

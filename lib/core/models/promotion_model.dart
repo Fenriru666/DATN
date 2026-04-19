@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class PromotionModel {
   final String id;
   final String code;
@@ -20,27 +18,29 @@ class PromotionModel {
   });
 
   factory PromotionModel.fromMap(Map<String, dynamic> data, String id) {
+    var rawExp = data['expiration_date'] ?? data['expirationDate'];
+    
     return PromotionModel(
       id: id,
       code: data['code'] ?? '',
-      discountPercentage: (data['discountPercentage'] ?? 0.0).toDouble(),
-      maxDiscount: (data['maxDiscount'] ?? 0.0).toDouble(),
-      minOrderValue: (data['minOrderValue'] ?? 0.0).toDouble(),
-      expirationDate: data['expirationDate'] != null
-          ? (data['expirationDate'] as Timestamp).toDate()
+      discountPercentage: (data['discount_percentage'] ?? data['discountPercentage'] ?? 0.0).toDouble(),
+      maxDiscount: (data['max_discount'] ?? data['maxDiscount'] ?? 0.0).toDouble(),
+      minOrderValue: (data['min_order_value'] ?? data['minOrderValue'] ?? 0.0).toDouble(),
+      expirationDate: rawExp != null
+          ? (DateTime.tryParse(rawExp.toString()) ?? DateTime.now())
           : DateTime.now(),
-      isActive: data['isActive'] ?? true,
+      isActive: data['is_active'] ?? data['isActive'] ?? true,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'code': code.toUpperCase(),
-      'discountPercentage': discountPercentage,
-      'maxDiscount': maxDiscount,
-      'minOrderValue': minOrderValue,
-      'expirationDate': Timestamp.fromDate(expirationDate),
-      'isActive': isActive,
+      'discount_percentage': discountPercentage,
+      'max_discount': maxDiscount,
+      'min_order_value': minOrderValue,
+      'expiration_date': expirationDate.toIso8601String(),
+      'is_active': isActive,
     };
   }
 }

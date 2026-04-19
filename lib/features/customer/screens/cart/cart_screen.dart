@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:datn/features/customer/services/cart_service.dart';
 import 'package:datn/features/customer/screens/checkout/checkout_screen.dart';
 
@@ -112,7 +112,7 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      '${(item.price * item.quantity).toInt()} ₫',
+                                      '${(item.price * item.quantity).toInt()} đ',
                                       style: const TextStyle(
                                         color: Color(0xFFFE724C),
                                         fontWeight: FontWeight.bold,
@@ -189,7 +189,7 @@ class _CartScreenState extends State<CartScreen> {
                                 ),
                               ),
                               Text(
-                                '${_cartService.totalAmount.toInt()} ₫',
+                                '${_cartService.totalAmount.toInt()} đ',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,

@@ -24,7 +24,9 @@ class ReferralScreen extends StatelessWidget {
           }
 
           if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text("Không thể tải thông tin. Vui lòng thử lại sau."));
+            return const Center(
+              child: Text("Không thể tải thông tin. Vui lòng thử lại sau."),
+            );
           }
 
           final user = snapshot.data!;
@@ -53,7 +55,7 @@ class ReferralScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   const Text(
-                    "Tặng bạn 50K - Tặng mình 50K! 🎁",
+                    "Tặng bạn 50K - Tặng mình 50K! ðŸŽ",
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -63,8 +65,12 @@ class ReferralScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Bạn bè của bạn sẽ nhận được 50.000đ khi đăng ký bằng mã này. Bạn cũng sẽ nhận được 50.000đ khi họ hoàn tất đăng ký tài khoản!",
-                    style: TextStyle(fontSize: 16, color: Colors.black87, height: 1.5),
+                    "Bạn bè của bạn sẽ nhận được 50.000đ khi đăng ký bằng mã này. Bạn cÅ©ng sẽ nhận được 50.000đ khi họ hoàn tất đăng ký tài khoản!",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -72,11 +78,17 @@ class ReferralScreen extends StatelessWidget {
                   // Referral Code Box
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 24,
+                      horizontal: 20,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        style: BorderStyle.solid,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.05),
@@ -106,9 +118,15 @@ class ReferralScreen extends StatelessWidget {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () {
-                              Clipboard.setData(ClipboardData(text: referralCode));
+                              Clipboard.setData(
+                                ClipboardData(text: referralCode),
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đã sao chép mã giới thiệu vào khay nhớ tạm!')),
+                                const SnackBar(
+                                  content: Text(
+                                    'Đã sao chép mã giới thiệu vào khay nhớ tạm!',
+                                  ),
+                                ),
                               );
                             },
                             icon: const Icon(Icons.copy),

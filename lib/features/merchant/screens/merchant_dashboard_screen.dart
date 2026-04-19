@@ -90,7 +90,9 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Lý do từ chối'),
-          content: const Text('Khách hàng sẽ nhận được thông báo đơn hàng bị hủy. Bạn có chắc chắn không?'),
+          content: const Text(
+            'Khách hàng sẽ nhận được thông báo đơn hàng bị hủy. Bạn có chắc chắn không?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -101,7 +103,10 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                 Navigator.pop(context);
                 _updateOrderStatus(order, 'Cancelled');
               },
-              child: const Text('Từ chối Đơn', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Từ chối Đơn',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -293,7 +298,9 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const MerchantHistoryScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const MerchantHistoryScreen(),
+                ),
               );
             },
           ),
@@ -346,7 +353,10 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
           const Spacer(),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+            title: const Text(
+              'Đăng xuất',
+              style: TextStyle(color: Colors.red),
+            ),
             onTap: () async {
               await Supabase.instance.client.auth.signOut();
               if (mounted) Navigator.pushReplacementNamed(context, '/');

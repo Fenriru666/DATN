@@ -7,12 +7,42 @@ class LuckyWheelService {
 
   // Wheel Items
   static const List<Map<String, dynamic>> wheelItems = [
-    {"label": "Chúc may mắn", "type": "NONE", "value": 0, "color": 0xFF9E9E9E}, // Grey
-    {"label": "1.000đ", "type": "WALLET", "value": 1000, "color": 0xFFFE724C}, // Orange
-    {"label": "5.000đ", "type": "WALLET", "value": 5000, "color": 0xFF4CAF50}, // Green
-    {"label": "Chúc may mắn", "type": "NONE", "value": 0, "color": 0xFF9E9E9E}, // Grey
-    {"label": "10.000đ", "type": "WALLET", "value": 10000, "color": 0xFFFFC107}, // Amber
-    {"label": "2.000đ", "type": "WALLET", "value": 2000, "color": 0xFF2196F3}, // Blue
+    {
+      "label": "Chúc may mắn",
+      "type": "NONE",
+      "value": 0,
+      "color": 0xFF9E9E9E,
+    }, // Grey
+    {
+      "label": "1.000đ",
+      "type": "WALLET",
+      "value": 1000,
+      "color": 0xFFFE724C,
+    }, // Orange
+    {
+      "label": "5.000đ",
+      "type": "WALLET",
+      "value": 5000,
+      "color": 0xFF4CAF50,
+    }, // Green
+    {
+      "label": "Chúc may mắn",
+      "type": "NONE",
+      "value": 0,
+      "color": 0xFF9E9E9E,
+    }, // Grey
+    {
+      "label": "10.000đ",
+      "type": "WALLET",
+      "value": 10000,
+      "color": 0xFFFFC107,
+    }, // Amber
+    {
+      "label": "2.000đ",
+      "type": "WALLET",
+      "value": 2000,
+      "color": 0xFF2196F3,
+    }, // Blue
   ];
 
   static const int pointsPerSpin = 50;
@@ -66,7 +96,7 @@ class LuckyWheelService {
       if (prize['type'] == 'WALLET') {
         final amount = prize['value'] as int;
         transaction.update(userDocRef, {
-           'walletBalance': FieldValue.increment(amount),
+          'walletBalance': FieldValue.increment(amount),
         });
 
         // Log transaction

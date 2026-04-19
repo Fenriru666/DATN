@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:datn/features/customer/services/user_address_service.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 import 'package:datn/features/customer/services/goong_service.dart';
 import 'package:latlong2/latlong.dart';
+
 class AddressBookScreen extends StatelessWidget {
   const AddressBookScreen({super.key});
 
@@ -13,12 +14,7 @@ class AddressBookScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          loc.savedAddresses,
-        ),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text(loc.savedAddresses), elevation: 0),
       body: StreamBuilder<List<AddressModel>>(
         stream: UserAddressService().getAddresses(),
         builder: (context, snapshot) {
@@ -30,11 +26,17 @@ class AddressBookScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.location_off, size: 64, color: isDark ? Colors.grey[700] : Colors.grey[300]),
+                  Icon(
+                    Icons.location_off,
+                    size: 64,
+                    color: isDark ? Colors.grey[700] : Colors.grey[300],
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     loc.noSavedAddresses,
-                    style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
@@ -51,7 +53,9 @@ class AddressBookScreen extends StatelessWidget {
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: isDark ? Colors.grey[800]! : Colors.grey[200]!),
+                  border: Border.all(
+                    color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                 ),
@@ -84,7 +88,9 @@ class AddressBookScreen extends StatelessWidget {
                           Text(
                             address.fullAddress,
                             style: TextStyle(
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              color: isDark
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                               fontSize: 13,
                             ),
                           ),
@@ -132,7 +138,9 @@ class AddressBookScreen extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
@@ -163,14 +171,21 @@ class AddressBookScreen extends StatelessWidget {
                     decoration: InputDecoration(
                       labelText: loc.addressNameHint,
                       hintText: loc.addressNameHint,
-                      prefixIcon: const Icon(Icons.label_outline, color: Color(0xFFFE724C)),
+                      prefixIcon: const Icon(
+                        Icons.label_outline,
+                        color: Color(0xFFFE724C),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -187,7 +202,9 @@ class AddressBookScreen extends StatelessWidget {
                         context: context,
                         isScrollControlled: true,
                         shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20),
+                          ),
                         ),
                         builder: (ctx) {
                           return StatefulBuilder(
@@ -218,14 +235,18 @@ class AddressBookScreen extends StatelessWidget {
                                           autofocus: true,
                                           decoration: InputDecoration(
                                             hintText: loc.searchPlaceholder,
-                                            prefixIcon: const Icon(Icons.search),
+                                            prefixIcon: const Icon(
+                                              Icons.search,
+                                            ),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                           ),
                                           onChanged: (value) async {
                                             if (value.length > 2) {
-                                              final results = await goongService.searchPlaces(value);
+                                              final results = await goongService
+                                                  .searchPlaces(value);
                                               setSearchState(() {
                                                 predictions = results;
                                               });
@@ -240,7 +261,9 @@ class AddressBookScreen extends StatelessWidget {
                                               final place = predictions[index];
                                               return ListTile(
                                                 title: Text(place.description),
-                                                leading: const Icon(Icons.location_on_outlined),
+                                                leading: const Icon(
+                                                  Icons.location_on_outlined,
+                                                ),
                                                 onTap: () {
                                                   Navigator.pop(ctx, place);
                                                 },
@@ -259,7 +282,9 @@ class AddressBookScreen extends StatelessWidget {
                       );
 
                       if (result != null) {
-                        final latLng = await goongService.getPlaceDetail(result.placeId);
+                        final latLng = await goongService.getPlaceDetail(
+                          result.placeId,
+                        );
                         if (latLng != null) {
                           setModalState(() {
                             addressController.text = result.description;
@@ -278,19 +303,32 @@ class AddressBookScreen extends StatelessWidget {
                           alignLabelWithHint: true,
                           prefixIcon: const Padding(
                             padding: EdgeInsets.only(bottom: 40.0),
-                            child: Icon(Icons.location_on_outlined, color: Color(0xFFFE724C)),
+                            child: Icon(
+                              Icons.location_on_outlined,
+                              color: Color(0xFFFE724C),
+                            ),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? Colors.grey[800]!
+                                  : Colors.grey[300]!,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[300]!),
+                            borderSide: BorderSide(
+                              color: isDark
+                                  ? Colors.grey[800]!
+                                  : Colors.grey[300]!,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFFE724C)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFFE724C),
+                            ),
                           ),
                         ),
                       ),
@@ -306,7 +344,11 @@ class AddressBookScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            side: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                            side: BorderSide(
+                              color: isDark
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[300]!,
+                            ),
                           ),
                           onPressed: () => Navigator.pop(context),
                           child: Text(
@@ -341,7 +383,8 @@ class AddressBookScreen extends StatelessWidget {
                                 lng: selectedLatLng!.longitude,
                               );
                               Navigator.pop(context);
-                            } else if (nameController.text.isNotEmpty && addressController.text.isNotEmpty) {
+                            } else if (nameController.text.isNotEmpty &&
+                                addressController.text.isNotEmpty) {
                               // Fallback if somehow they typed without a map coordinate
                               UserAddressService().addAddress(
                                 nameController.text,

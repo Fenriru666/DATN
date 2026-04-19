@@ -41,16 +41,20 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
           label,
           result,
         );
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đã cập nhật địa chỉ ${label == 'home' ? 'Nhà riêng' : 'Công ty'}')),
+            SnackBar(
+              content: Text(
+                'Đã cập nhật địa chỉ ${label == 'home' ? 'Nhà riêng' : 'Công ty'}',
+              ),
+            ),
           );
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi cập nhật địa chỉ: $e')),
-          );
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Lỗi cập nhật địa chỉ: $e')));
         }
       }
     }
@@ -59,10 +63,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Địa Điểm Yêu Thích'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Địa Điểm Yêu Thích'), elevation: 0),
       body: StreamBuilder<UserModel?>(
         stream: _streamCurrentUser(),
         builder: (context, snapshot) {
@@ -103,22 +104,20 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
     );
   }
 
-  Widget _buildPlaceItem(BuildContext context,
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap}) {
+  Widget _buildPlaceItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: const Color(0xFFFE724C).withValues(alpha: 0.1),
         child: Icon(icon, color: const Color(0xFFFE724C)),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(
-        subtitle,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
     );
@@ -130,7 +129,8 @@ class PlaceSearchDelegate extends SearchDelegate<Map<String, dynamic>?> {
     if (query.isEmpty) return [];
 
     final url = Uri.parse(
-        'https://rsapi.goong.io/Place/AutoComplete?api_key=${MapConstants.goongServiceKey}&input=$query');
+      'https://rsapi.goong.io/Place/AutoComplete?api_key=${MapConstants.goongServiceKey}&input=$query',
+    );
 
     try {
       final response = await http.get(url);
@@ -146,7 +146,8 @@ class PlaceSearchDelegate extends SearchDelegate<Map<String, dynamic>?> {
 
   Future<Map<String, dynamic>?> _getPlaceDetails(String placeId) async {
     final url = Uri.parse(
-        'https://rsapi.goong.io/Place/Detail?place_id=$placeId&api_key=${MapConstants.goongServiceKey}');
+      'https://rsapi.goong.io/Place/Detail?place_id=$placeId&api_key=${MapConstants.goongServiceKey}',
+    );
 
     try {
       final response = await http.get(url);
@@ -225,11 +226,12 @@ class PlaceSearchDelegate extends SearchDelegate<Map<String, dynamic>?> {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                  builder: (context) =>
+                      const Center(child: CircularProgressIndicator()),
                 );
 
                 final details = await _getPlaceDetails(prediction['place_id']);
-                
+
                 if (context.mounted) {
                   Navigator.pop(context); // Close loading dialog
                   close(context, details); // Return details

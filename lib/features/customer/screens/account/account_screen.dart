@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/features/customer/screens/account/address_book_screen.dart';
 import 'package:datn/core/services/translation_service.dart';
 import 'package:datn/features/auth/screens/root_dispatcher.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 import 'package:datn/features/auth/services/auth_service.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:datn/core/utils/tier_calculator.dart';
@@ -111,7 +111,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   Text(
                     user?.email ?? 'user@example.com',
                     style: TextStyle(
-                      color: isDarkGlobally ? Colors.grey[400] : Colors.grey[600],
+                      color: isDarkGlobally
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -255,7 +257,9 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                       _SettingItem(
                         icon: Icons.home_work_outlined,
-                        label: AppLocalizations.of(context)!.profileFavoritePlaces,
+                        label: AppLocalizations.of(
+                          context,
+                        )!.profileFavoritePlaces,
                         onTap: () {
                           Navigator.push(
                             context,
@@ -279,7 +283,9 @@ class _AccountScreenState extends State<AccountScreen> {
                       ),
                       _SettingItem(
                         icon: Icons.card_giftcard,
-                        label: AppLocalizations.of(context)!.profileInviteFriends,
+                        label: AppLocalizations.of(
+                          context,
+                        )!.profileInviteFriends,
                         onTap: () {
                           Navigator.push(
                             context,
@@ -300,17 +306,23 @@ class _AccountScreenState extends State<AccountScreen> {
                             },
                             title: Text(
                               AppLocalizations.of(context)!.profileDarkMode,
-                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             secondary: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.grey[800] : Colors.grey[100],
+                                color: isDark
+                                    ? Colors.grey[800]
+                                    : Colors.grey[100],
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.dark_mode,
-                                color: isDark ? Colors.white70 : Colors.grey[700],
+                                color: isDark
+                                    ? Colors.white70
+                                    : Colors.grey[700],
                                 size: 20,
                               ),
                             ),
@@ -378,7 +390,9 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _showEditProfileDialog() {
-    final nameController = TextEditingController(text: user?.userMetadata?['name'] as String?);
+    final nameController = TextEditingController(
+      text: user?.userMetadata?['name'] as String?,
+    );
     // Determine phone from firestore would be ideal, but for now just name
 
     showDialog(
@@ -407,7 +421,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 if (user != null) {
                   // Update Supabase Auth metadata
                   await Supabase.instance.client.auth.updateUser(
-                    UserAttributes(data: {'name': nameController.text})
+                    UserAttributes(data: {'name': nameController.text}),
                   );
                   // Update Supabase Database
                   await Supabase.instance.client
@@ -537,7 +551,7 @@ class _SettingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -595,7 +609,7 @@ class _SettingItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkItem = Theme.of(context).brightness == Brightness.dark;
-    
+
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -603,7 +617,11 @@ class _SettingItem extends StatelessWidget {
           color: isDarkItem ? Colors.grey[800] : Colors.grey[100],
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: isDarkItem ? Colors.grey[300] : Colors.grey[700], size: 20),
+        child: Icon(
+          icon,
+          color: isDarkItem ? Colors.grey[300] : Colors.grey[700],
+          size: 20,
+        ),
       ),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),

@@ -88,10 +88,13 @@ class PushNotificationService {
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
       // NOTE: We now save this to Supabase instead of Firestore.
-      await Supabase.instance.client.from('users').update({
-        'fcm_token': token,
-        // The DB handles updated_at trigger, or you could do it manually
-      }).eq('id', user.id);
+      await Supabase.instance.client
+          .from('users')
+          .update({
+            'fcm_token': token,
+            // The DB handles updated_at trigger, or you could do it manually
+          })
+          .eq('id', user.id);
     }
   }
 

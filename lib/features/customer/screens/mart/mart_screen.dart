@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:datn/l10n/generated/app_localizations.dart';
+import 'package:datn/l10n/app_localizations.dart';
 import 'package:datn/features/customer/screens/mart/supermarket_detail_screen.dart';
 
 class MartScreen extends StatefulWidget {
@@ -12,7 +12,7 @@ class MartScreen extends StatefulWidget {
 
 class _MartScreenState extends State<MartScreen> {
   String _searchQuery = '';
-  
+
   final List<Map<String, dynamic>> _allSupermarkets = [
     {
       'name': 'Coopmart Nguyễn Đình Chiểu',
@@ -56,6 +56,60 @@ class _MartScreenState extends State<MartScreen> {
       'distance': '9.2 km',
       'rating': 4.8,
     },
+    {
+      'name': 'Circle K Nguyễn Trãi',
+      'imagePath': 'assets/images/burger.png',
+      'distance': '0.2 km',
+      'rating': 4.3,
+    },
+    {
+      'name': 'GS25 Điện Biên Phủ',
+      'imagePath': 'assets/images/pizza.png',
+      'distance': '0.5 km',
+      'rating': 4.4,
+    },
+    {
+      'name': 'FamilyMart Lê Văn Sỹ',
+      'imagePath': 'assets/images/burger.png',
+      'distance': '1.0 km',
+      'rating': 4.5,
+    },
+    {
+      'name': 'Ministop Lý Thái Tổ',
+      'imagePath': 'assets/images/pizza.png',
+      'distance': '0.7 km',
+      'rating': 4.2,
+    },
+    {
+      'name': 'Co.op Food Trần Hưng Đạo',
+      'imagePath': 'assets/images/burger.png',
+      'distance': '1.5 km',
+      'rating': 4.6,
+    },
+    {
+      'name': 'Tops Market Thảo Điền',
+      'imagePath': 'assets/images/pizza.png',
+      'distance': '6.5 km',
+      'rating': 4.8,
+    },
+    {
+      'name': 'Satrafoods Phạm Thế Hiển',
+      'imagePath': 'assets/images/burger.png',
+      'distance': '2.1 km',
+      'rating': 4.4,
+    },
+    {
+      'name': '7-Eleven Tôn Đức Thắng',
+      'imagePath': 'assets/images/pizza.png',
+      'distance': '0.3 km',
+      'rating': 4.5,
+    },
+    {
+      'name': 'Big C Miền Đông',
+      'imagePath': 'assets/images/burger.png',
+      'distance': '5.0 km',
+      'rating': 4.7,
+    },
   ];
 
   @override
@@ -67,7 +121,9 @@ class _MartScreenState extends State<MartScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        leading: BackButton(color: Theme.of(context).textTheme.bodyLarge?.color),
+        leading: BackButton(
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -134,22 +190,25 @@ class _MartScreenState extends State<MartScreen> {
               ),
               child: Row(
                 children: [
-                   const Icon(Icons.search, color: Colors.grey),
-                   const SizedBox(width: 8),
-                   Expanded(
-                     child: TextField(
-                       onChanged: (val) {
-                         setState(() {
-                           _searchQuery = val;
-                         });
-                       },
-                       decoration: InputDecoration(
-                         border: InputBorder.none,
-                         hintText: l10n.searchSupermarket,
-                         hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                       ),
-                     ),
-                   ),
+                  const Icon(Icons.search, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: l10n.searchSupermarket,
+                        hintStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -239,21 +298,30 @@ class _MartScreenState extends State<MartScreen> {
             ListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              children: _allSupermarkets.where((store) {
-                if (_searchQuery.isEmpty) {
-                  // Only show nearby (< 3.0 km) when not searching
-                  double dist = double.tryParse(store['distance'].toString().split(' ')[0]) ?? 0.0;
-                  return dist <= 3.0;
-                }
-                return store['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
-              }).map((store) {
-                return _SupermarketCard(
-                  name: store['name'],
-                  imagePath: store['imagePath'],
-                  distance: store['distance'],
-                  rating: store['rating'],
-                );
-              }).toList(),
+              children: _allSupermarkets
+                  .where((store) {
+                    if (_searchQuery.isEmpty) {
+                      // Only show nearby (< 3.0 km) when not searching
+                      double dist =
+                          double.tryParse(
+                            store['distance'].toString().split(' ')[0],
+                          ) ??
+                          0.0;
+                      return dist <= 3.0;
+                    }
+                    return store['name'].toString().toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    );
+                  })
+                  .map((store) {
+                    return _SupermarketCard(
+                      name: store['name'],
+                      imagePath: store['imagePath'],
+                      distance: store['distance'],
+                      rating: store['rating'],
+                    );
+                  })
+                  .toList(),
             ),
             const SizedBox(height: 80),
           ],
@@ -374,83 +442,100 @@ class _SupermarketCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: const BoxDecoration(
-              color: Colors.orangeAccent,
-              borderRadius: BorderRadius.horizontal(
-                left: Radius.circular(16),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).dividerColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                color: Colors.orangeAccent,
+                borderRadius: BorderRadius.horizontal(
+                  left: Radius.circular(16),
+                ),
+              ),
+              child: const Center(
+                child: Icon(Icons.store, color: Colors.white, size: 40),
               ),
             ),
-            child: const Center(
-              child: Icon(Icons.store, color: Colors.white, size: 40),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.orange, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        rating.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.location_on, color: Colors.grey, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        distance,
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.orange, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          rating.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.grey,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          distance,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'Free Delivery',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    child: const Text(
-                      'Free Delivery',
-                      style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  )
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

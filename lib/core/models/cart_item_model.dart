@@ -1,4 +1,4 @@
-class CartItemModel {
+﻿class CartItemModel {
   final String id;
   final String name;
   final double price;

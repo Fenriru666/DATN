@@ -18,6 +18,7 @@ class UserModel {
   final String? referralCode; // Added for Priority 40
   final String? referredBy; // Added for Priority 40
   final Map<String, dynamic>? savedPlaces; // Added for Priority 42
+  final String? driverType; // e.g. grab, be, xanhsm
 
   UserModel({
     required this.uid,
@@ -38,6 +39,7 @@ class UserModel {
     this.referralCode,
     this.referredBy,
     this.savedPlaces,
+    this.driverType,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, String uid) {
@@ -47,13 +49,13 @@ class UserModel {
       roles: (data['email'].toString().startsWith('admin'))
           ? [UserRole.admin]
           : data['role'] != null
-              ? [
-                  UserRole.values.firstWhere(
-                    (e) => e.toString().split('.').last == data['role'],
-                    orElse: () => UserRole.customer,
-                  )
-                ]
-              : [UserRole.customer],
+          ? [
+              UserRole.values.firstWhere(
+                (e) => e.toString().split('.').last == data['role'],
+                orElse: () => UserRole.customer,
+              ),
+            ]
+          : [UserRole.customer],
       createdAt: data['created_at'] != null
           ? (DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
@@ -62,8 +64,8 @@ class UserModel {
           ? (double.tryParse(data['loyalty_points'].toString())?.toInt() ?? 0)
           : 0,
       favoriteDrivers: data['favorite_drivers'] is List
-              ? (data['favorite_drivers'] as List).map((e) => e.toString()).toList()
-              : [],
+          ? (data['favorite_drivers'] as List).map((e) => e.toString()).toList()
+          : [],
       walletBalance: data['wallet_balance'] != null
           ? double.tryParse(data['wallet_balance'].toString()) ?? 0.0
           : 0.0,
@@ -78,8 +80,8 @@ class UserModel {
           : 0,
       isApproved: data['is_approved'] != null
           ? (data['is_approved'] is bool
-              ? data['is_approved']
-              : data['is_approved'].toString() == 'true')
+                ? data['is_approved']
+                : data['is_approved'].toString() == 'true')
           : true,
       name: data['name'],
       phone: data['phone'],
@@ -88,6 +90,7 @@ class UserModel {
       savedPlaces: data['saved_places'] is Map
           ? Map<String, dynamic>.from(data['saved_places'] as Map)
           : null,
+      driverType: data['driver_type'],
     );
   }
 
@@ -119,6 +122,7 @@ class UserModel {
       if (referralCode != null) 'referral_code': referralCode,
       if (referredBy != null) 'referred_by': referredBy,
       if (savedPlaces != null) 'saved_places': savedPlaces,
+      if (driverType != null) 'driver_type': driverType,
     };
   }
 
@@ -140,6 +144,7 @@ class UserModel {
     String? referralCode,
     String? referredBy,
     Map<String, dynamic>? savedPlaces,
+    String? driverType,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -159,6 +164,7 @@ class UserModel {
       referralCode: referralCode ?? this.referralCode,
       referredBy: referredBy ?? this.referredBy,
       savedPlaces: savedPlaces ?? this.savedPlaces,
+      driverType: driverType ?? this.driverType,
     );
   }
 }

@@ -89,7 +89,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return;
-      
+
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -98,7 +98,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       if (permission == LocationPermission.deniedForever) return;
 
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
       );
       final latLng = LatLng(pos.latitude, pos.longitude);
       final address = await _goongService.reverseGeocode(latLng);
@@ -196,9 +198,15 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         Map<String, dynamic>? botData = data['data'];
 
         // Sửa lỗi placeholder Backend trả về cho logic đặt xe
-        botResponseText = botResponseText.replaceAll('<đây là điểm xuất phát của bạn>', _currentAddress);
+        botResponseText = botResponseText.replaceAll(
+          '<đây là điểm xuất phát của bạn>',
+          _currentAddress,
+        );
         if (botData != null && botData['pickup'] != null) {
-          botData['pickup'] = botData['pickup'].toString().replaceAll('<đây là điểm xuất phát của bạn>', _currentAddress);
+          botData['pickup'] = botData['pickup'].toString().replaceAll(
+            '<đây là điểm xuất phát của bạn>',
+            _currentAddress,
+          );
         }
 
         if (userId != null) {
@@ -218,7 +226,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         if (_isAutoReadEnabled && botResponseText.isNotEmpty) {
           await _flutterTts.speak(botResponseText);
         }
-
       } else {
         _showError('Server returned Error: ${response.statusCode}');
       }
@@ -359,11 +366,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.topicName,
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('Phiên: ${widget.sessionId.substring(0, 8)}...',
-                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              widget.topicName,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Phiên: ${widget.sessionId.substring(0, 8)}...',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
         backgroundColor: Colors.white,
@@ -375,7 +385,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               _isAutoReadEnabled ? Icons.volume_up : Icons.volume_off,
               color: _isAutoReadEnabled ? const Color(0xFFFE724C) : Colors.grey,
             ),
-            tooltip: _isAutoReadEnabled ? 'Tắt tự động đọc' : 'Bật tự động đọc',
+            tooltip: _isAutoReadEnabled
+                ? 'Tắt tự động đọc'
+                : 'Bật tự động đọc',
             onPressed: () {
               setState(() {
                 _isAutoReadEnabled = !_isAutoReadEnabled;
@@ -385,9 +397,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(_isAutoReadEnabled
-                      ? 'Đã BẬT tự động đọc văn bản'
-                      : 'Đã TẮT tự động đọc văn bản'),
+                  content: Text(
+                    _isAutoReadEnabled
+                        ? 'Đã BẬT tự động đọc văn bản'
+                        : 'Đã TẮT tự động đọc văn bản',
+                  ),
                   duration: const Duration(seconds: 1),
                 ),
               );
@@ -414,12 +428,19 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     }
                   });
 
-                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator(color: Color(0xFFFE724C)));
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFFE724C),
+                      ),
+                    );
                   }
-                  
+
                   if (snapshot.hasError) {
-                    return Center(child: Text("Lỗi tải tin nhắn: ${snapshot.error}"));
+                    return Center(
+                      child: Text("Lỗi tải tin nhắn: ${snapshot.error}"),
+                    );
                   }
 
                   final messages = snapshot.data ?? [];
@@ -609,9 +630,21 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildTimelineRow('Doanh thu', data['revenue'] ?? '0đ', isLast: false),
-          _buildTimelineRow('Số lượng đơn', '${data['orders'] ?? 0} đơn', isLast: false),
-          _buildTimelineRow('Mức Tăng trưởng', data['growth'] ?? '0%', isLast: true),
+          _buildTimelineRow(
+            'Doanh thu',
+            data['revenue'] ?? '0đ',
+            isLast: false,
+          ),
+          _buildTimelineRow(
+            'Số lượng đơn',
+            '${data['orders'] ?? 0} đơn',
+            isLast: false,
+          ),
+          _buildTimelineRow(
+            'Mức Tăng trưởng',
+            data['growth'] ?? '0%',
+            isLast: true,
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(10),
@@ -664,7 +697,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               Expanded(
                 child: Text(
                   'Lộ trình đề xuất',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
@@ -688,7 +724,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 // Handoff to Real Core Ride System [Priority 45]
                 final dropoff = data['dropoff'];
                 final pickup = data['pickup'];
-                final realPickup = (pickup != null && pickup != 'Vị trí hiện tại') ? pickup : null;
+                final realPickup =
+                    (pickup != null && pickup != 'Vị trí hiện tại')
+                    ? pickup
+                    : null;
 
                 Navigator.push(
                   context,

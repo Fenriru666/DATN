@@ -14,14 +14,12 @@ class WalletService {
     final uid = currentUserId;
     if (uid == null) return Stream.value(0.0);
 
-    return _supabase
-        .from('users')
-        .stream(primaryKey: ['id'])
-        .eq('id', uid)
-        .map((docs) {
-      if (docs.isEmpty) return 0.0;
-      return (docs.first['wallet_balance'] ?? 0.0).toDouble();
-    });
+    return _supabase.from('users').stream(primaryKey: ['id']).eq('id', uid).map(
+      (docs) {
+        if (docs.isEmpty) return 0.0;
+        return (docs.first['wallet_balance'] ?? 0.0).toDouble();
+      },
+    );
   }
 
   /// Stream user's transactions
@@ -35,10 +33,10 @@ class WalletService {
         .eq('user_id', uid)
         .order('created_at', ascending: false)
         .map((docs) {
-      return docs
-          .map((doc) => TransactionModel.fromMap(doc['id'], doc))
-          .toList();
-    });
+          return docs
+              .map((doc) => TransactionModel.fromMap(doc['id'], doc))
+              .toList();
+        });
   }
 
   /// Top up wallet (Simulated)
@@ -46,7 +44,9 @@ class WalletService {
     final uid = currentUserId;
     if (uid == null) throw app_errors.AuthException('User not logged in');
     if (amount <= 0) {
-      throw app_errors.ValidationException('Top up amount must be greater than 0');
+      throw app_errors.ValidationException(
+        'Top up amount must be greater than 0',
+      );
     }
 
     try {
@@ -73,7 +73,9 @@ class WalletService {
   ) async {
     final uid = currentUserId;
     if (uid == null) throw app_errors.AuthException('User not logged in');
-    if (amount <= 0) throw app_errors.ValidationException('Invalid payment amount');
+    if (amount <= 0) {
+      throw app_errors.ValidationException('Invalid payment amount');
+    }
 
     try {
       final response = await _supabase.rpc(
@@ -111,7 +113,9 @@ class WalletService {
     if (senderId == receiverId) {
       throw app_errors.ValidationException('Cannot transfer to yourself');
     }
-    if (amount <= 0) throw app_errors.ValidationException('Invalid transfer amount');
+    if (amount <= 0) {
+      throw app_errors.ValidationException('Invalid transfer amount');
+    }
 
     try {
       final response = await _supabase.rpc(
@@ -125,7 +129,9 @@ class WalletService {
       );
 
       if (response == false) {
-        throw app_errors.ValidationException('Giao dịch chuyển tiền thất bại');
+        throw app_errors.ValidationException(
+          'Giao dịch chuyển tiền thất bại',
+        );
       }
 
       // Notify receiver
@@ -138,7 +144,7 @@ class WalletService {
 
       NotificationSenderService.notifyUser(
         targetUserId: receiverId,
-        title: "Ting Ting! 💸",
+        title: "Ting Ting! ðŸ’¸",
         body: "$senderName vừa chuyển cho bạn $amount VND. Lời nhắn: $note",
       ).catchError((e) => debugPrint("Error notifying receiver: $e"));
 
@@ -170,7 +176,9 @@ class WalletService {
       if (result.isNotEmpty) {
         final doc = result.first;
         if (doc['id'] == uid) {
-          throw app_errors.ValidationException("Không thể chuyển tiền cho chính mình");
+          throw app_errors.ValidationException(
+            "Không thể chuyển tiền cho chính mình",
+          );
         }
         return doc;
       }

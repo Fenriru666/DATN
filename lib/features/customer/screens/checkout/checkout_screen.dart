@@ -39,8 +39,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Basic validation: user should have items
     if (_cartService.items.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Checkout')),
-        body: const Center(child: Text("Cart is empty")),
+        appBar: AppBar(title: const Text('Thanh toán')),
+        body: const Center(child: Text("Giỏ hàng trống")),
       );
     }
 
@@ -60,7 +60,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Checkout', style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color)),
+        title: Text(
+          'Thanh toán',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: BackButton(color: Theme.of(context).iconTheme.color),
@@ -71,7 +76,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Delivery Address',
+              'Địa chỉ nhận hàng',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 12),
@@ -97,7 +102,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Home',
+                          'Nhà',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
@@ -118,7 +123,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 30),
             const Text(
-              'Order Summary',
+              'Tóm tắt đơn hàng',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 12),
@@ -147,7 +152,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const SizedBox(width: 8),
                     Expanded(child: Text(item.name)),
                     Text(
-                      '${(item.price * item.quantity).toInt()} ₫',
+                      '${(item.price * item.quantity).toInt()} đ',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -160,7 +165,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               children: [
                 const Text('Tạm tính', style: TextStyle(color: Colors.grey)),
                 Text(
-                  '${subtotal.toInt()} ₫',
+                  '${subtotal.toInt()} đ',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -175,7 +180,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     style: TextStyle(color: Colors.green),
                   ),
                   Text(
-                    '-${discountAmount.toInt()} ₫',
+                    '-${discountAmount.toInt()} đ',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -193,7 +198,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 Text(
-                  '${_deliveryFee.toInt()} ₫',
+                  '${_deliveryFee.toInt()} đ',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -207,7 +212,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '${totalAmount.toInt()} ₫',
+                  '${totalAmount.toInt()} đ',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -218,7 +223,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 30),
             const Text(
-              'Payment Method',
+              'Phương thức thanh toán',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 12),
@@ -237,7 +242,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
             // Promo Code Section
             const Text(
-              'Add Promo Code',
+              'Mã khuyến mãi',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 12),
@@ -247,7 +252,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: TextField(
                     controller: _promoController,
                     decoration: InputDecoration(
-                      hintText: 'Enter code here...',
+                      hintText: 'Nhập mã tại đây...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -271,7 +276,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                   child: const Text(
-                    'Apply',
+                    'Áp dụng',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),

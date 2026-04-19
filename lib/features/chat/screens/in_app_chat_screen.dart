@@ -22,7 +22,8 @@ class InAppChatScreen extends StatefulWidget {
 class _InAppChatScreenState extends State<InAppChatScreen> {
   final InAppChatService _chatService = InAppChatService();
   final TextEditingController _msgController = TextEditingController();
-  String get _currentUserId => Supabase.instance.client.auth.currentUser?.id ?? '';
+  String get _currentUserId =>
+      Supabase.instance.client.auth.currentUser?.id ?? '';
 
   @override
   void initState() {

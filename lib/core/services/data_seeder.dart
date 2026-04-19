@@ -7,12 +7,97 @@ class DataSeeder {
 
   static Future<void> seed() async {
     try {
+      await _seedMockUsersForDashboard();
       await _seedRestaurants();
       await _seedProducts();
       await _seedOrders();
       debugPrint('Data seeding completed successfully.');
     } catch (e) {
       debugPrint('Error seeding data: $e');
+    }
+  }
+
+  static Future<void> _seedMockUsersForDashboard() async {
+    final countSnapshot = await _firestore.collection('users').count().get();
+    if ((countSnapshot.count ?? 0) > 20) return; // Already seeded
+
+    debugPrint('Seeding large fake user data for dashboard...');
+
+    Future<void> runBatch(
+      List<Map<String, dynamic>> items,
+      String prefix,
+    ) async {
+      int chuckSize = 400; // Firestore batch limit is 500
+      for (int i = 0; i < items.length; i += chuckSize) {
+        final end = (i + chuckSize < items.length)
+            ? i + chuckSize
+            : items.length;
+        final currentChunk = items.sublist(i, end);
+        final batch = _firestore.batch();
+        for (int j = 0; j < currentChunk.length; j++) {
+          final docRef = _firestore
+              .collection('users')
+              .doc('mock_${prefix}_${i + j}');
+          batch.set(docRef, currentChunk[j]);
+        }
+        await batch.commit();
+      }
+    }
+
+    // Generate 1200 Customers
+    List<Map<String, dynamic>> customers = List.generate(
+      1200,
+      (i) => {
+        'email': 'customer$i@mock.com',
+        'name': 'Khách hàng $i',
+        'role': 'customer',
+        'roles': ['customer'],
+        'isApproved': true,
+        'created_at': DateTime.now()
+            .subtract(Duration(days: i % 180))
+            .toIso8601String(),
+      },
+    );
+
+    // Generate 350 Drivers (grab, be, xanhsm)
+    List<String> types = ['grab', 'be', 'xanhsm'];
+    List<Map<String, dynamic>> drivers = List.generate(
+      350,
+      (i) => {
+        'email': 'driver$i@mock.com',
+        'name': 'Tài xế $i',
+        'role': 'driver',
+        'roles': ['driver'],
+        'driver_type': types[i % types.length],
+        'isApproved': i % 10 != 0, // 10% pending
+        'created_at': DateTime.now()
+            .subtract(Duration(days: i % 180))
+            .toIso8601String(),
+      },
+    );
+
+    // Generate 150 Merchants
+    List<Map<String, dynamic>> merchants = List.generate(
+      150,
+      (i) => {
+        'email': 'merchant$i@mock.com',
+        'name': 'Cửa hàng $i',
+        'role': 'merchant',
+        'roles': ['merchant'],
+        'isApproved': i % 10 != 0, // 10% pending
+        'created_at': DateTime.now()
+            .subtract(Duration(days: i % 180))
+            .toIso8601String(),
+      },
+    );
+
+    try {
+      await runBatch(customers, 'cust');
+      await runBatch(drivers, 'driver');
+      await runBatch(merchants, 'merch');
+      debugPrint('Mock Users for Dashboard seeded successfully!');
+    } catch (e) {
+      debugPrint('Error seeding mock users: $e');
     }
   }
 

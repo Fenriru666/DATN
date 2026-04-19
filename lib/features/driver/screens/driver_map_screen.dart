@@ -297,6 +297,23 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
               ),
             ),
 
+          // Current Location Button
+          Positioned(
+            bottom: 330,
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: 'current_location_drv',
+              backgroundColor: Colors.white,
+              mini: true,
+              onPressed: () {
+                if (_currentDriverLocation != null) {
+                  _mapController.move(_currentDriverLocation!, 16);
+                }
+              },
+              child: const Icon(Icons.my_location, color: Colors.blue),
+            ),
+          ),
+
           // SOS BUTTON for Driver
           Positioned(
             bottom: 270,
@@ -328,7 +345,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("🚨 BÁO ĐỘNG ĐÃ ĐƯỢC PHÁT ĐI!"),
+                        content: Text("ðŸš¨ BÁO ĐỘNG ĐÃ ĐƯỢC PHÁT ĐI!"),
                         backgroundColor: Colors.red,
                         duration: Duration(seconds: 5),
                       ),
@@ -520,7 +537,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                               ),
                             ),
                             child: const Text(
-                              "ĐÃ ĐẾN NƠI",
+                              "ĐÃ ĐẾN NÆ I",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
