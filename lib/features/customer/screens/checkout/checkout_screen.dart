@@ -8,7 +8,9 @@ import 'package:datn/core/utils/ui_helpers.dart';
 import 'package:datn/features/customer/screens/checkout/order_success_screen.dart';
 import 'package:datn/features/customer/screens/location/location_selection_screen.dart';
 import 'package:latlong2/latlong.dart';
-
+import 'package:datn/features/customer/services/vnpay_service.dart';
+import 'package:datn/features/customer/services/momo_service.dart';
+import 'package:datn/features/customer/screens/wallet/vnpay_webview_screen.dart';
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -229,8 +231,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 12),
             _buildPaymentOption('Cash', Icons.money, Colors.green),
             _buildPaymentOption(
+              'VNPAY',
+              Icons.credit_card,
+              Colors.blue,
+            ),
+            _buildPaymentOption(
               'MoMo',
-              Icons.account_balance_wallet,
+              Icons.account_balance_wallet_outlined,
               Colors.pink,
             ),
             _buildPaymentOption(
@@ -337,7 +344,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             : '0xFFFE724C',
         itemsSummary: summary,
         totalPrice: _cartService.totalAmount + _deliveryFee,
-        status: 'Pending',
+        status: _selectedPaymentMethod == 'VNPAY' ? 'Pending Payment' : 'Pending',
         createdAt: DateTime.now(),
         serviceType: 'Food',
         address: _address,
@@ -345,13 +352,100 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
 
       // Simulating a short delay if payment is an e-wallet
-      if (_selectedPaymentMethod == 'MoMo' ||
-          _selectedPaymentMethod == 'ZaloPay') {
+      if (_selectedPaymentMethod == 'ZaloPay') {
         await Future.delayed(const Duration(seconds: 2));
       }
       // Note: My Wallet deduction is handled inside OrderService().createOrder()
 
-      await OrderService().createOrder(newOrder);
+      final orderId = await OrderService().createOrder(newOrder);
+
+      if (_selectedPaymentMethod == 'VNPAY') {
+        final vnpayService = VnpayService();
+        final url = await vnpayService.fetchPaymentUrl(
+          amount: newOrder.totalPrice,
+          description: 'Thanh toan don hang $orderId',
+          userId: 'ORDER_$orderId',
+        );
+
+        if (url != null && mounted) {
+          final success = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => VnpayWebviewScreen(
+                paymentUrl: url,
+                amount: newOrder.totalPrice,
+              ),
+            ),
+          );
+
+          if (success == true) {
+            await OrderService().updateOrderStatus(orderId, 'Pending');
+          } else {
+            await OrderService().updateOrderStatus(
+              orderId,
+              'Cancelled',
+              cancellationReason: 'Khách hàng hủy thanh toán VNPAY',
+            );
+            setState(() => _isLoading = false);
+            return;
+          }
+        } else if (url == null && mounted) {
+          await OrderService().updateOrderStatus(
+            orderId,
+            'Cancelled',
+            cancellationReason: 'Lỗi tạo giao dịch VNPAY',
+          );
+          if (mounted) {
+            UIHelpers.showSnackBar(context, 'Không thể kết nối VNPAY', isError: true);
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+      } else if (_selectedPaymentMethod == 'MoMo') {
+        final momoService = MomoService();
+        final url = await momoService.generatePaymentUrl(
+          amount: newOrder.totalPrice,
+          description: 'Thanh toan don hang $orderId',
+          userId: 'ORDER_$orderId',
+          orderId: orderId,
+        );
+
+        if (url != null && mounted) {
+          final success = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => VnpayWebviewScreen(
+                paymentUrl: url,
+                amount: newOrder.totalPrice,
+              ),
+            ),
+          );
+
+          if (success == true) {
+            await OrderService().updateOrderStatus(orderId, 'Pending');
+          } else {
+            await OrderService().updateOrderStatus(
+              orderId,
+              'Cancelled',
+              cancellationReason: 'Khách hàng hủy thanh toán MoMo',
+            );
+            setState(() => _isLoading = false);
+            return;
+          }
+        } else if (url == null && mounted) {
+          await OrderService().updateOrderStatus(
+            orderId,
+            'Cancelled',
+            cancellationReason: 'Lỗi tạo giao dịch MoMo',
+          );
+          if (mounted) {
+            UIHelpers.showSnackBar(context, 'Không thể kết nối MoMo', isError: true);
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
       _cartService.clearCart();
 
       if (mounted) {

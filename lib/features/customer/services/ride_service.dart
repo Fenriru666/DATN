@@ -1,4 +1,4 @@
-﻿class RideService {
+class RideService {
   // Base prices and per km rates based on user request details
 
   // Bike Rates
@@ -80,10 +80,10 @@
   }
 
   String _estTime(double dist, double speedKmh) {
-    if (dist <= 0) return "1 min";
+    if (dist <= 0) return "1 phút";
     double hours = dist / speedKmh;
     int minutes = (hours * 60).ceil();
-    return "$minutes min";
+    return "$minutes phút";
   }
 }
 

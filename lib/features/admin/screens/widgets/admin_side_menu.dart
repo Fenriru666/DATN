@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:datn/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:datn/features/admin/screens/admin_user_management_screen.dart';
 import 'package:datn/features/admin/screens/admin_promotion_screen.dart';
+import 'package:datn/features/admin/screens/admin_settings_screen.dart';
 
 class AdminSideMenu extends StatelessWidget {
   final String currentRoute;
@@ -76,11 +77,17 @@ class AdminSideMenu extends StatelessWidget {
                 _DrawerListTile(
                   title: "Cài Đặt",
                   icon: Icons.settings_rounded,
-                  isSelected: false,
+                  isSelected: currentRoute == 'settings',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Tính năng đang phát triển')),
-                    );
+                    if (currentRoute != 'settings') {
+                      Navigator.of(context).pushReplacement(
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) => const AdminSettingsScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    }
                   },
                 ),
                 _DrawerListTile(

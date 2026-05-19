@@ -1,4 +1,4 @@
-﻿import 'package:datn/features/auth/screens/root_dispatcher.dart';
+import 'package:datn/features/auth/screens/root_dispatcher.dart';
 import 'package:datn/features/auth/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/features/chatbot/screens/ai_history_screen.dart';
@@ -18,6 +18,7 @@ import 'package:datn/core/utils/tier_calculator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -678,7 +679,7 @@ class _DriverActivityTab extends StatelessWidget {
                       ),
                       title: Text("Cuốc xe #${order.id.substring(0, 5)}"),
                       subtitle: Text(
-                        "Hoàn thành â€¢ ${order.totalPrice.toStringAsFixed(0)}đ",
+                        "Hoàn thành • ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(order.totalPrice)}",
                       ),
                       trailing: Text(dateStr),
                     );
@@ -807,7 +808,7 @@ class _DriverProfileTab extends StatelessWidget {
                           ),
                           _buildStatItem(
                             "Đánh giá",
-                            "${driver.rating.toStringAsFixed(1)} â˜…",
+                            "${driver.rating.toStringAsFixed(1)} ★",
                             subtitle: "(${driver.ratingCount} lượt)",
                           ),
                         ],

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:datn/features/customer/services/wallet_service.dart';
 import 'package:datn/features/customer/services/promotion_service.dart';
 import 'package:datn/core/models/promotion_model.dart';
 import 'package:datn/core/utils/ui_helpers.dart';
@@ -20,6 +19,9 @@ import 'package:datn/core/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
+import 'package:datn/features/customer/services/vnpay_service.dart';
+import 'package:datn/features/customer/screens/wallet/vnpay_webview_screen.dart';
 
 class RideScreen extends StatefulWidget {
   final String? initialDestination;
@@ -33,7 +35,6 @@ class RideScreen extends StatefulWidget {
 
 class _RideScreenState extends State<RideScreen> {
   final MapController _mapController = MapController();
-  final WalletService _walletService = WalletService();
   final PromotionService _promotionService = PromotionService();
 
   final TextEditingController _promoController = TextEditingController();
@@ -915,7 +916,7 @@ class _RideScreenState extends State<RideScreen> {
                                   ],
                                 ),
                                 Text(
-                                  '${driver['rating'].toStringAsFixed(1)} â˜… (${driver['ratingCount']} đánh giá) â€¢ ${(driver['distanceKm'] as double).toStringAsFixed(1)} km',
+                                  '${driver['rating'].toStringAsFixed(1)} ★ (${driver['ratingCount']} đánh giá) • ${(driver['distanceKm'] as double).toStringAsFixed(1)} km',
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ],
@@ -1090,19 +1091,51 @@ class _RideScreenState extends State<RideScreen> {
         scheduledTime: _scheduledTime,
       );
 
-      // Simulating a short delay if payment is an e-wallet
-      if (_selectedPaymentMethod == 'MoMo' ||
-          _selectedPaymentMethod == 'ZaloPay') {
-        await Future.delayed(const Duration(seconds: 2));
-      } else if (_selectedPaymentMethod == 'My Wallet') {
-        await _walletService.deductBalance(
-          finalPrice,
-          'ride_payment',
-          'Ride to $_dropoffLocation',
-        );
-      }
-
       final orderId = await OrderService().createOrder(newOrder);
+
+      if (_selectedPaymentMethod == 'VNPAY') {
+        final vnpayService = VnpayService();
+        final url = await vnpayService.fetchPaymentUrl(
+          amount: newOrder.totalPrice,
+          description: 'Thanh toan cuoc xe $orderId',
+          userId: 'ORDER_$orderId',
+        );
+
+        if (url != null && mounted) {
+          final success = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => VnpayWebviewScreen(
+                paymentUrl: url,
+                amount: newOrder.totalPrice,
+              ),
+            ),
+          );
+
+          if (success == true) {
+            await OrderService().updateOrderStatus(orderId, 'Pending'); // Or 'Looking for driver'
+          } else {
+            await OrderService().updateOrderStatus(
+              orderId,
+              'Cancelled',
+              cancellationReason: 'Khách hàng hủy thanh toán VNPAY',
+            );
+            setState(() => _isSearching = false);
+            return;
+          }
+        } else if (url == null && mounted) {
+          await OrderService().updateOrderStatus(
+            orderId,
+            'Cancelled',
+            cancellationReason: 'Lỗi tạo giao dịch VNPAY',
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể kết nối VNPAY')),
+          );
+          setState(() => _isSearching = false);
+          return;
+        }
+      }
 
       if (mounted) {
         if (_scheduledTime != null) {
@@ -1181,7 +1214,7 @@ class _RideScreenState extends State<RideScreen> {
                     ),
                   ),
                   Text(
-                    '${option.estimatedTime} â€¢ ${_distanceKm.toStringAsFixed(1)} km',
+                    '${option.estimatedTime} • ${_distanceKm.toStringAsFixed(1)} km',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -1193,7 +1226,7 @@ class _RideScreenState extends State<RideScreen> {
               children: [
                 if ((_appliedPromo != null || _useLoyaltyPoints) && isSelected)
                   Text(
-                    '${option.price.toStringAsFixed(0)}đ',
+                    NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(option.price),
                     style: const TextStyle(
                       fontSize: 12,
                       decoration: TextDecoration.lineThrough,
@@ -1215,7 +1248,7 @@ class _RideScreenState extends State<RideScreen> {
                       if (finalDisplayPrice < 0) finalDisplayPrice = 0;
                     }
                     return Text(
-                      '${finalDisplayPrice.toStringAsFixed(0)}đ',
+                      NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(finalDisplayPrice),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -1441,9 +1474,9 @@ class _RideScreenState extends State<RideScreen> {
                           ),
                           const SizedBox(width: 8),
                           _buildPaymentOption(
-                            'MoMo',
-                            Icons.account_balance_wallet,
-                            Colors.pink,
+                            'VNPAY',
+                            Icons.credit_card,
+                            Colors.blue,
                           ),
                           const SizedBox(width: 8),
                           const SizedBox(width: 8),

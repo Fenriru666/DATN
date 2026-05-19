@@ -9,6 +9,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:datn/features/customer/services/order_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/core/models/order_model.dart';
+import 'package:datn/features/customer/services/vnpay_service.dart';
+import 'package:datn/features/customer/screens/wallet/vnpay_webview_screen.dart';
 
 class CourierScreen extends StatefulWidget {
   final String? initialLocation;
@@ -26,11 +28,14 @@ class _CourierScreenState extends State<CourierScreen> {
   LatLng? _senderLatLng;
   String? _receiverAddress;
   LatLng? _receiverLatLng;
+  String? _receiverName;
+  String? _receiverPhone;
   double? _distanceKm;
   double? _shippingFee;
 
   bool _isSearching = false;
   double _searchRadius = 5.0;
+  String _selectedPaymentMethod = 'Cash';
 
   @override
   void initState() {
@@ -105,6 +110,15 @@ class _CourierScreenState extends State<CourierScreen> {
     );
 
     if (result != null && result is Map) {
+      if (!isSender && context.mounted) {
+        final details = await _showReceiverDetailsDialog();
+        if (details != null) {
+          setState(() {
+            _receiverName = details['name'];
+            _receiverPhone = details['phone'];
+          });
+        }
+      }
       setState(() {
         if (isSender) {
           _senderAddress = result['address'];
@@ -116,6 +130,60 @@ class _CourierScreenState extends State<CourierScreen> {
       });
       _calculateDistanceAndFee();
     }
+  }
+
+  Future<Map<String, String>?> _showReceiverDetailsDialog() async {
+    final nameController = TextEditingController(text: _receiverName);
+    final phoneController = TextEditingController(text: _receiverPhone);
+    return showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Thông tin người nhận'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Tên người nhận',
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Số điện thoại',
+                prefixIcon: Icon(Icons.phone),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Bỏ qua'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vui lòng nhập tên và số điện thoại')),
+                );
+                return;
+              }
+              Navigator.pop(context, {
+                'name': nameController.text.trim(),
+                'phone': phoneController.text.trim(),
+              });
+            },
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _startBooking() async {
@@ -301,7 +369,7 @@ class _CourierScreenState extends State<CourierScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${(driver['distanceKm'] as double).toStringAsFixed(1)} km away â€¢ â˜… ${driver['rating']}',
+                          '${(driver['distanceKm'] as double).toStringAsFixed(1)} km away • ★ ${driver['rating']}',
                         ),
                         trailing: ElevatedButton(
                           onPressed: () async {
@@ -347,7 +415,7 @@ class _CourierScreenState extends State<CourierScreen> {
         merchantId: 'courier_service', // Mark as courier
         merchantName: driverData['name'],
         merchantImage: '0xFFFE724C',
-        itemsSummary: 'Gói hàng Giao Tốc Hành',
+        itemsSummary: 'Gói hàng Giao Tốc Hành\nNgười nhận: ${_receiverName ?? ''} - ĐT: ${_receiverPhone ?? ''}',
         serviceType: 'Ride',
         address: _senderAddress ?? 'Sender Point',
         status: 'Accepted', // Auto accept for mock
@@ -359,10 +427,53 @@ class _CourierScreenState extends State<CourierScreen> {
         driverId: driverData['id'],
         driverLat: driverData['latitude'],
         driverLng: driverData['longitude'],
+        paymentMethod: _selectedPaymentMethod,
         createdAt: DateTime.now(),
       );
 
       final orderId = await _orderService.createOrder(orderData);
+
+      if (_selectedPaymentMethod == 'VNPAY') {
+        final vnpayService = VnpayService();
+        final url = await vnpayService.fetchPaymentUrl(
+          amount: orderData.totalPrice,
+          description: 'Thanh toan giao hang $orderId',
+          userId: 'ORDER_$orderId',
+        );
+
+        if (url != null && mounted) {
+          final success = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => VnpayWebviewScreen(
+                paymentUrl: url,
+                amount: orderData.totalPrice,
+              ),
+            ),
+          );
+
+          if (success == true) {
+            await _orderService.updateOrderStatus(orderId, 'Pending');
+          } else {
+            await _orderService.updateOrderStatus(
+              orderId,
+              'Cancelled',
+              cancellationReason: 'Khách hàng hủy thanh toán VNPAY',
+            );
+            return;
+          }
+        } else if (url == null && mounted) {
+          await _orderService.updateOrderStatus(
+            orderId,
+            'Cancelled',
+            cancellationReason: 'Lỗi tạo giao dịch VNPAY',
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể kết nối VNPAY')),
+          );
+          return;
+        }
+      }
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -628,6 +739,14 @@ class _CourierScreenState extends State<CourierScreen> {
                                                       : const Color(0xFFFE724C),
                                                 ),
                                               ),
+                                              if (_receiverName != null && _receiverName!.isNotEmpty)
+                                                Text(
+                                                  '$_receiverName - ${_receiverPhone ?? ''}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         ),
@@ -764,14 +883,42 @@ class _CourierScreenState extends State<CourierScreen> {
 
                       const SizedBox(height: 20),
 
+                      // Payment Method Selector
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: const Text(
+                          'Phương thức thanh toán',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 60,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            _buildPaymentOption('Cash', 'Tiền mặt', Icons.money, Colors.green),
+                            const SizedBox(width: 8),
+                            _buildPaymentOption('VNPAY', 'VNPAY', Icons.credit_card, Colors.blue),
+                            const SizedBox(width: 8),
+                            _buildPaymentOption('My Wallet', 'Ví của tôi', Icons.account_balance_wallet, Colors.purple),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed:
                               (_senderAddress != null &&
                                   _receiverAddress != null &&
+                                  _receiverName != null &&
+                                  _receiverPhone != null &&
                                   _senderAddress!.isNotEmpty &&
                                   _receiverAddress!.isNotEmpty &&
+                                  _receiverName!.isNotEmpty &&
+                                  _receiverPhone!.isNotEmpty &&
                                   !_isSearching)
                               ? _startBooking
                               : null,
@@ -809,6 +956,36 @@ class _CourierScreenState extends State<CourierScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentOption(String value, String label, IconData icon, Color color) {
+    final isSelected = _selectedPaymentMethod == value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPaymentMethod = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Theme.of(context).dividerColor,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? color : Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

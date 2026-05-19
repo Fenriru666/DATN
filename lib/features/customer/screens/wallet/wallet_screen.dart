@@ -5,6 +5,7 @@ import 'package:datn/core/utils/ui_helpers.dart';
 import 'package:datn/features/customer/screens/wallet/transfer_money_screen.dart';
 import 'package:datn/features/customer/screens/wallet/withdraw_screen.dart';
 import 'package:datn/features/customer/services/vnpay_service.dart';
+import 'package:datn/features/customer/services/momo_service.dart';
 import 'package:datn/features/customer/screens/wallet/vnpay_webview_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:datn/l10n/app_localizations.dart';
@@ -23,6 +24,98 @@ class _WalletScreenState extends State<WalletScreen> {
     symbol: 'đ',
   );
   final DateFormat _dateFormat = DateFormat('dd MMM, hh:mm a');
+
+  Future<void> _handleTopUp(BuildContext ctx, String amountStr, String method) async {
+    final amount = double.tryParse(amountStr);
+    if (amount == null || amount <= 0) {
+      UIHelpers.showSnackBar(
+        context,
+        'Invalid amount',
+        isError: true,
+      );
+      return;
+    }
+
+    Navigator.pop(ctx); // Close Dialog
+
+    String? paymentUrl;
+    final orderId = 'TOPUP_${_walletService.currentUserId ?? ""}_${DateTime.now().millisecondsSinceEpoch}';
+
+    if (method == 'VNPAY') {
+      final vnpayService = VnpayService();
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      
+      paymentUrl = await vnpayService.fetchPaymentUrl(
+        amount: amount,
+        description: 'Nap tien vao vi SuperApp',
+        userId: 'TOPUP_${_walletService.currentUserId ?? ""}',
+      );
+      
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+    } else if (method == 'MOMO') {
+      final momoService = MomoService();
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      
+      paymentUrl = await momoService.generatePaymentUrl(
+        amount: amount,
+        description: 'Nap tien vao vi SuperApp',
+        userId: _walletService.currentUserId ?? "",
+        orderId: orderId,
+      );
+      
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+    }
+
+    if (paymentUrl == null || paymentUrl.isEmpty) {
+      if (mounted) {
+        UIHelpers.showSnackBar(context, 'Lỗi tạo giao dịch $method', isError: true);
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    final success = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            VnpayWebviewScreen(paymentUrl: paymentUrl!, amount: amount),
+      ),
+    );
+
+    if (success == true) {
+      try {
+        // Gọi trực tiếp hàm nạp tiền (Demo cho Mobile App, không cần Backend IPN)
+        await _walletService.topUp(amount);
+        if (mounted) {
+          UIHelpers.showSnackBar(
+            context,
+            'Nạp tiền thành công qua $method!',
+            isError: false,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          UIHelpers.showSnackBar(
+            context,
+            'Lỗi cập nhật số dư: $e',
+            isError: true,
+          );
+        }
+      }
+    }
+  }
 
   void _showTopUpDialog() {
     final TextEditingController amountController = TextEditingController();
@@ -46,41 +139,20 @@ class _WalletScreenState extends State<WalletScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              final amountStr = amountController.text.trim();
-              if (amountStr.isEmpty) return;
-
-              final amount = double.tryParse(amountStr);
-              if (amount == null || amount <= 0) {
-                UIHelpers.showSnackBar(
-                  context,
-                  'Invalid amount',
-                  isError: true,
-                );
-                return;
-              }
-
-              Navigator.pop(ctx); // Close Dialog
-
-              final vnpayService = VnpayService();
-              final url = vnpayService.generatePaymentUrl(
-                amount: amount,
-                description: 'Nap tien vao vi SuperApp',
-              );
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      VnpayWebviewScreen(paymentUrl: url, amount: amount),
-                ),
-              );
-            },
+            onPressed: () => _handleTopUp(ctx, amountController.text.trim(), 'VNPAY'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFE724C),
+              backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Confirm'),
+            child: const Text('VNPAY'),
+          ),
+          ElevatedButton(
+            onPressed: () => _handleTopUp(ctx, amountController.text.trim(), 'MOMO'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.pink,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('MoMo'),
           ),
         ],
       ),

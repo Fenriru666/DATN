@@ -3,13 +3,14 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class VnpayService {
-  final String apiUrl = 'https://dklvrzwvayhtcjslsnzr.supabase.co/functions/v1/create_payment_url';
-
-  Future<String?> fetchPaymentUrl({
+class MomoService {
+  final String apiUrl = "https://dklvrzwvayhtcjslsnzr.supabase.co/functions/v1/create_momo_url";
+  
+  Future<String?> generatePaymentUrl({
     required double amount,
     required String description,
     required String userId,
+    required String orderId,
   }) async {
     try {
       final session = Supabase.instance.client.auth.currentSession;
@@ -23,23 +24,20 @@ class VnpayService {
           'amount': amount,
           'description': description,
           'userId': userId,
-          'ipAddr': '13.160.92.202'
+          'orderId': orderId,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final paymentUrl = data['paymentUrl'];
-        debugPrint("--- FINAL VNPAY URL ---");
-        debugPrint(paymentUrl);
-        debugPrint("-----------------------");
-        return paymentUrl; 
+        return data['paymentUrl']; 
       } else {
-        debugPrint('Lỗi tạo đơn VNPAY (Server): ${response.body}');
+        debugPrint('Lỗi tạo đơn MoMo (Server): ${response.body}');
+        return null;
       }
     } catch (e) {
-      debugPrint("Lỗi tạo đơn VNPAY: $e");
+      debugPrint('MOMO Exception: $e');
+      return null;
     }
-    return null;
   }
 }

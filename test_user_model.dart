@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'package:datn/core/models/user_model.dart';
 void main() {
   Map<String, dynamic> data = {
@@ -21,3 +22,4 @@ void main() {
     print(st);
   }
 }
+

@@ -127,7 +127,7 @@ class PartnerReviewScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Chuyến: ${order.id.substring(0, 8)} â€¢ ${order.serviceType}',
+                            'Chuyến: ${order.id.substring(0, 8)} • ${order.serviceType}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
