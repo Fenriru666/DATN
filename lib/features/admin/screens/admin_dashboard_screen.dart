@@ -17,6 +17,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final AdminService _adminService = AdminService();
   bool _isLoading = true;
   Map<String, dynamic>? _stats;
+  int _selectedDays = 7;
 
   @override
   void initState() {
@@ -27,7 +28,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _fetchStats() async {
     setState(() => _isLoading = true);
     try {
-      final stats = await _adminService.getSystemStats();
+      final stats = await _adminService.getSystemStats(days: _selectedDays);
       setState(() {
         _stats = stats;
       });
@@ -323,7 +324,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: _buildChartCard(
                   title: 'Doanh thu trung bình theo ngày',
                   child: RevenueLineChart(
-                    weeklyRevenue: _stats?['weeklyRevenue'] ?? List.filled(7, 0.0),
+                    dailyRevenue: _stats?['dailyRevenue'] ?? List.filled(_selectedDays, 0.0),
                     maxRevenue: _stats?['maxDailyRevenue'] ?? 0.0,
                   ),
                 ),
@@ -347,7 +348,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               _buildChartCard(
                 title: 'Doanh thu trung bình theo ngày',
                 child: RevenueLineChart(
-                  weeklyRevenue: _stats?['weeklyRevenue'] ?? List.filled(7, 0.0),
+                  dailyRevenue: _stats?['dailyRevenue'] ?? List.filled(_selectedDays, 0.0),
                   maxRevenue: _stats?['maxDailyRevenue'] ?? 0.0,
                 ),
               ),
@@ -395,7 +396,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   color: Color(0xFF1E293B),
                 ),
               ),
-              Icon(Icons.more_horiz, color: Colors.grey[400]),
+              if (title.contains('Doanh thu'))
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _selectedDays,
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 18),
+                      style: const TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold, fontSize: 13),
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      onChanged: (int? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedDays = newValue;
+                          });
+                          _fetchStats();
+                        }
+                      },
+                      items: const [
+                        DropdownMenuItem(value: 7, child: Text('7 ngày qua')),
+                        DropdownMenuItem(value: 30, child: Text('30 ngày qua')),
+                        DropdownMenuItem(value: 90, child: Text('90 ngày qua')),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Icon(Icons.more_horiz, color: Colors.grey[400]),
             ],
           ),
           const SizedBox(height: 24),

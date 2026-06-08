@@ -16,15 +16,21 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
   late TabController _tabController;
   final AdminService _adminService = AdminService();
 
-  late final Stream<List<UserModel>> _pendingUsersStream;
-  late final Stream<List<UserModel>> _activePartnersStream;
+  Stream<List<UserModel>>? _pendingUsersStream;
+  Stream<List<UserModel>>? _activePartnersStream;
+
+  void _refreshData() {
+    setState(() {
+      _pendingUsersStream = _adminService.streamPendingUsers();
+      _activePartnersStream = _adminService.streamActivePartners();
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _pendingUsersStream = _adminService.streamPendingUsers();
-    _activePartnersStream = _adminService.streamActivePartners();
+    _refreshData();
   }
 
   @override
@@ -173,11 +179,15 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
   Widget _buildDataTable(List<UserModel> users, {required bool isPending}) {
     final formatter = DateFormat('dd/MM/yyyy HH:mm');
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: SingleChildScrollView(
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
           dataRowMinHeight: 64,
           dataRowMaxHeight: 64,
           horizontalMargin: 24,
@@ -305,8 +315,11 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
             );
           }).toList(),
         ),
-      ),
-    );
+              ),
+            ),
+          );
+        },
+      );
   }
 
   Future<void> _approveUser(String uid) async {
@@ -314,6 +327,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
       await _adminService.approveUser(uid);
       if (mounted) {
         UIHelpers.showSnackBar(context, 'Đã phê duyệt đối tác thành công!');
+        _refreshData();
       }
     } catch (e) {
       if (mounted) UIHelpers.showErrorDialog(context, 'Lỗi', e.toString());
@@ -325,6 +339,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
       await _adminService.banUser(uid);
       if (mounted) {
         UIHelpers.showSnackBar(context, 'Tài khoản đã bị đình chỉ/Từ chối.');
+        _refreshData();
       }
     } catch (e) {
       if (mounted) UIHelpers.showErrorDialog(context, 'Lỗi', e.toString());

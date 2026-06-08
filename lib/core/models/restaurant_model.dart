@@ -1,4 +1,4 @@
-﻿class RestaurantModel {
+class RestaurantModel {
   final String id;
   final String name;
   final double rating;
@@ -8,6 +8,8 @@
   final String imageUrl; // For now we might store a color hex or a URL
   final int ratingCount;
   final bool isOnline; // Defines if the merchant is currently accepting orders
+  final double? latitude;
+  final double? longitude;
 
   RestaurantModel({
     required this.id,
@@ -19,6 +21,8 @@
     required this.imageUrl,
     this.ratingCount = 0,
     this.isOnline = true,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +36,8 @@
       'imageUrl': imageUrl,
       'ratingCount': ratingCount,
       'isOnline': isOnline,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -46,6 +52,8 @@
       imageUrl: map['imageUrl'] ?? '',
       ratingCount: map['ratingCount'] ?? 0,
       isOnline: map['isOnline'] ?? true,
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
     );
   }
 }

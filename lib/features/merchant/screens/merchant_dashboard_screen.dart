@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/features/merchant/services/merchant_service.dart';
 import 'package:datn/core/models/order_model.dart';
 import 'package:datn/features/merchant/screens/merchant_menu_screen.dart';
+import 'package:datn/features/merchant/screens/merchant_store_settings_screen.dart';
 import 'package:datn/features/shared/screens/partner_review_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:datn/core/providers/theme_provider.dart';
@@ -38,10 +39,115 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
           .collection('restaurants')
           .doc(user.id)
           .get();
-      if (doc.exists && mounted) {
-        setState(() {
-          _isOnline = doc.data()?['isOnline'] ?? true;
+      if (doc.exists) {
+        if (mounted) {
+          setState(() {
+            _isOnline = doc.data()?['isOnline'] ?? true;
+          });
+          // Kiểm tra nếu chưa có vỹ trí thật (vẫn đang dùng toạ độ mặc định)
+          final lat = doc.data()?['latitude'];
+          final lng = doc.data()?['longitude'];
+          final isDefaultLocation = lat == 10.7769 && lng == 106.7009;
+          final hasNoAddress = (doc.data()?['address'] ?? '').toString().isEmpty;
+          if (isDefaultLocation || hasNoAddress) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    '⚠️ Cửa hàng chưa có địa chỉ! Vui lòng cài đặt ngay.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 5),
+                  action: SnackBarAction(
+                    label: 'CÀI ĐẶT',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MerchantStoreSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            });
+          }
+        }
+      } else {
+        // Auto-create restaurant details if not found
+        String name = 'Cửa hàng của tôi';
+        String email = '';
+        try {
+          final res = await Supabase.instance.client
+              .from('users')
+              .select('name, email')
+              .eq('id', user.id)
+              .maybeSingle();
+          if (res != null && res['name'] != null && res['name'].toString().trim().isNotEmpty) {
+            name = res['name'];
+          }
+          email = res?['email'] ?? user.email ?? '';
+        } catch (_) {}
+
+        await FirebaseFirestore.instance.collection('restaurants').doc(user.id).set({
+          'name': name,
+          'rating': 5.0,
+          'time': '15-25 min',
+          'deliveryFee': '15.000đ',
+          'tags': ['Đồ ăn', 'Cửa hàng'],
+          'imageUrl': '0xFFFE724C',
+          'ratingCount': 1,
+          'isOnline': true,
+          'latitude': 10.7769,
+          'longitude': 106.7009,
+          'address': '',
+          'ownerEmail': email,
         });
+
+        final menuRef = FirebaseFirestore.instance
+            .collection('restaurants')
+            .doc(user.id)
+            .collection('menu');
+        
+        final dish1 = menuRef.doc();
+        await dish1.set({
+          'id': dish1.id,
+          'name': 'Món ăn đặc sản',
+          'description': 'Món ăn đặc trưng được chuẩn bị công phu của nhà hàng.',
+          'price': 69000.0,
+          'imageUrl': '0xFFFE724C',
+          'isAvailable': true,
+        });
+
+        final dish2 = menuRef.doc();
+        await dish2.set({
+          'id': dish2.id,
+          'name': 'Nước ngọtPepsi',
+          'description': 'Nước ngọ giải khát mát lạnh.',
+          'price': 15000.0,
+          'imageUrl': '0xFFFE724C',
+          'isAvailable': true,
+        });
+
+        if (mounted) {
+          setState(() {
+            _isOnline = true;
+          });
+          // Prompt để merchant nhập địa chỉ ngay sau khi tạo
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MerchantStoreSettingsScreen(),
+              ),
+            );
+          });
+        }
       }
     }
   }
@@ -217,7 +323,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                 .where((o) => o.status == 'Pending')
                 .toList();
             final preparingOrders = orders
-                .where((o) => o.status == 'Preparing')
+                .where((o) => o.status == 'Preparing' || o.status == 'Accepted' || o.status == 'Arrived')
                 .toList();
             final readyOrders = orders
                 .where((o) => o.status == 'Ready')
@@ -267,6 +373,32 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             ),
             onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.store_mall_directory_outlined,
+              color: const Color(0xFFFE724C),
+            ),
+            title: const Text(
+              'Thông Tin Cửa Hàng',
+              style: TextStyle(
+                color: Color(0xFFFE724C),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: const Text(
+              'Địa chỉ, vị trí, ảnh...',
+              style: TextStyle(fontSize: 11),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MerchantStoreSettingsScreen(),
+                ),
+              );
+            },
           ),
           ListTile(
             leading: Icon(
@@ -417,15 +549,17 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                     ),
                   ],
                 ),
-                const Divider(),
                 // Placeholder for Items
                 const Text(
                   "Danh sách món:",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                // Since our OrderModel currently just has "food" generic or we need to map cart items
-                // the existing OrderModel stores items dynamically, we might need a general text.
+                Text(
+                  order.itemsSummary.isNotEmpty ? order.itemsSummary : "Không có thông tin món ăn",
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   "Tổng giá trị: ${currencyFormatter.format(order.totalPrice)}",
                   style: const TextStyle(
@@ -433,6 +567,28 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                if (order.driverId != null && order.driverId!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Divider(),
+                  Row(
+                    children: [
+                      Icon(Icons.directions_car, size: 16, color: Colors.blue[600]),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          order.status == 'Arrived'
+                              ? "Tài xế đã đến cửa hàng"
+                              : "Đã gán tài xế giao hàng",
+                          style: TextStyle(
+                            color: Colors.blue[800],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
 
                 const SizedBox(height: 12),
 

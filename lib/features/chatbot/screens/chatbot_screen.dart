@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io' show Platform;
@@ -11,6 +12,7 @@ import 'package:datn/features/customer/screens/ride/ride_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:datn/features/customer/services/goong_service.dart';
+import 'package:datn/core/providers/theme_provider.dart';
 
 // --- Custom Message Model ---
 class ChatMessage {
@@ -27,7 +29,7 @@ class ChatMessage {
   });
 }
 
-class ChatbotScreen extends StatefulWidget {
+class ChatbotScreen extends ConsumerStatefulWidget {
   final String sessionId;
   final String topic;
   final String topicName;
@@ -42,10 +44,10 @@ class ChatbotScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatbotScreen> createState() => _ChatbotScreenState();
+  ConsumerState<ChatbotScreen> createState() => _ChatbotScreenState();
 }
 
-class _ChatbotScreenState extends State<ChatbotScreen> {
+class _ChatbotScreenState extends ConsumerState<ChatbotScreen> {
   // Use localhost for Chrome testing, 10.0.2.2 for Android Emulator
   String get _backendUrl {
     try {
@@ -75,6 +77,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   // --- Location variables ---
   String _currentAddress = 'Vị trí hiện tại của bạn';
+  LatLng? _currentLatLng; // Tọa độ GPS thực, dùng để pass vào RideScreen chính xác
   final GoongService _goongService = GoongService();
 
   @override
@@ -99,13 +102,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
+          accuracy: LocationAccuracy.high, // Nâng lên high để chính xác hơn
         ),
       );
       final latLng = LatLng(pos.latitude, pos.longitude);
       final address = await _goongService.reverseGeocode(latLng);
       if (mounted) {
         setState(() {
+          _currentLatLng = latLng;   // Lưu tọa độ GPS thực
           _currentAddress = address;
         });
       }
@@ -198,15 +202,20 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         Map<String, dynamic>? botData = data['data'];
 
         // Sửa lỗi placeholder Backend trả về cho logic đặt xe
+        // Dùng regex để bắt bất kỳ placeholder <...> nào từ AI
+        final placeholderRegex = RegExp(r'<[^>]+>');
         botResponseText = botResponseText.replaceAll(
-          '<đây là điểm xuất phát của bạn>',
+          placeholderRegex,
           _currentAddress,
         );
-        if (botData != null && botData['pickup'] != null) {
-          botData['pickup'] = botData['pickup'].toString().replaceAll(
-            '<đây là điểm xuất phát của bạn>',
-            _currentAddress,
-          );
+        if (botData != null) {
+          final rawPickup = botData['pickup']?.toString();
+          // Nếu pickup null, trống, hoặc chứa placeholder <...> → dùng vị trí GPS
+          if (rawPickup == null ||
+              rawPickup.trim().isEmpty ||
+              placeholderRegex.hasMatch(rawPickup)) {
+            botData['pickup'] = _currentAddress;
+          }
         }
 
         if (userId != null) {
@@ -333,10 +342,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     } else {
       setState(() => _isListening = false);
       _speech.stop();
-      // Optional: Auto-send after stop listening
-      // if (_textController.text.isNotEmpty) {
-      //   _sendChatMessage(_textController.text);
-      // }
     }
   }
 
@@ -361,7 +366,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,23 +381,20 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0.5,
         actions: [
+          // Nút bật/tắt đọc tự động
           IconButton(
             icon: Icon(
               _isAutoReadEnabled ? Icons.volume_up : Icons.volume_off,
               color: _isAutoReadEnabled ? const Color(0xFFFE724C) : Colors.grey,
             ),
-            tooltip: _isAutoReadEnabled
-                ? 'Tắt tự động đọc'
-                : 'Bật tự động đọc',
+            tooltip: _isAutoReadEnabled ? 'Tắt tự động đọc' : 'Bật tự động đọc',
             onPressed: () {
               setState(() {
                 _isAutoReadEnabled = !_isAutoReadEnabled;
                 if (!_isAutoReadEnabled) {
-                  _flutterTts.stop(); // Stop immediately if toggled off
+                  _flutterTts.stop();
                 }
               });
               ScaffoldMessenger.of(context).showSnackBar(
@@ -404,6 +406,23 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   ),
                   duration: const Duration(seconds: 1),
                 ),
+              );
+            },
+          ),
+          // Nút chuyển sáng/tối
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeProvider);
+              final isDark = themeMode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: isDark ? Colors.amber : Colors.blueGrey,
+                ),
+                tooltip: isDark ? 'Chuyển sang sáng' : 'Chuyển sang tối',
+                onPressed: () {
+                  ref.read(themeProvider.notifier).toggleTheme(!isDark);
+                },
               );
             },
           ),
@@ -708,7 +727,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           const SizedBox(height: 12),
           _buildTimelineRow(
             'Điểm đón',
-            data['pickup'] ?? 'Trống',
+            (() {
+              final raw = data['pickup']?.toString() ?? '';
+              final hasPlaceholder = RegExp(r'<[^>]+>').hasMatch(raw);
+              return (raw.isEmpty || hasPlaceholder) ? _currentAddress : raw;
+            })(),
             isLast: false,
           ),
           _buildTimelineRow(
@@ -721,13 +744,16 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // Handoff to Real Core Ride System [Priority 45]
+                // Handoff to Real Core Ride System
                 final dropoff = data['dropoff'];
-                final pickup = data['pickup'];
-                final realPickup =
-                    (pickup != null && pickup != 'Vị trí hiện tại')
-                    ? pickup
-                    : null;
+                final rawPickup = data['pickup']?.toString();
+                final placeholderPattern = RegExp(r'<[^>]+>');
+                // Giải quyết pickup: nếu null, trống, hoặc còn placeholder → dùng vị trí GPS
+                final realPickup = (rawPickup != null &&
+                        rawPickup.trim().isNotEmpty &&
+                        !placeholderPattern.hasMatch(rawPickup))
+                    ? rawPickup
+                    : _currentAddress;
 
                 Navigator.push(
                   context,
@@ -735,6 +761,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     builder: (context) => RideScreen(
                       initialDestination: dropoff,
                       initialPickup: realPickup,
+                      // Truyền tọa độ GPS thực nếu điểm đón là vị trí hiện tại
+                      initialPickupLatLng:
+                          (rawPickup == null ||
+                                  rawPickup.trim().isEmpty ||
+                                  RegExp(r'<[^>]+>').hasMatch(rawPickup))
+                              ? _currentLatLng
+                              : null,
                     ),
                   ),
                 );

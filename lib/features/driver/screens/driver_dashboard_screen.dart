@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/features/auth/screens/root_dispatcher.dart';
 import 'package:datn/features/auth/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -150,21 +152,100 @@ class _DriverRequestsTab extends StatefulWidget {
 class _DriverRequestsTabState extends State<_DriverRequestsTab> {
   bool _isOnline = false;
   final DriverService _driverService = DriverService();
+  LatLng? _currentLocation;
 
-  // Mock location for emulator
-  LatLng get _mockLocation {
+  @override
+  void initState() {
+    super.initState();
+    _checkOnlineStatus();
+    _getCurrentLocation();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _checkOnlineStatus() async {
     final user = Supabase.instance.client.auth.currentUser;
-    if (user != null && user.email == 'test3@gmail.com') {
-      return const LatLng(10.741639, 106.660144); // Tùng Thiện Vương
+    if (user == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('drivers').doc(user.id).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          _isOnline = doc.data()?['isOnline'] ?? false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Lỗi khi kiểm tra trạng thái online: \$e");
     }
-    return const LatLng(10.7769, 106.7009); // Nhà thờ Đức Bà
+  }
+
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Vui lòng bật dịch vụ định vị (GPS).')));
+      }
+      return false;
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Quyền truy cập vị trí bị từ chối.')));
+        }
+        return false;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Quyền truy cập vị trí bị từ chối vĩnh viễn.')));
+      }
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _getCurrentLocation() async {
+    final hasPermission = await _handleLocationPermission();
+    if (!hasPermission) return;
+
+    final pos = await Geolocator.getCurrentPosition();
+    if (mounted) {
+      setState(() {
+        _currentLocation = LatLng(pos.latitude, pos.longitude);
+      });
+      // Nếu đang online thì cập nhật vị trí mới lên server
+      if (_isOnline) {
+        _driverService.updateLocation(_currentLocation!);
+      }
+    }
   }
 
   void _toggleOnline(bool val) async {
+    if (val && _currentLocation == null) {
+      await _getCurrentLocation();
+      if (_currentLocation == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Không thể lấy vị trí hiện tại, vui lòng thử lại.')));
+        }
+        return;
+      }
+    }
+
     setState(() => _isOnline = val);
 
     if (val) {
-      await _driverService.goOnline(_mockLocation);
+      await _driverService.goOnline(_currentLocation!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -309,14 +390,27 @@ class _DriverRequestsTabState extends State<_DriverRequestsTab> {
                     if (order.scheduledTime != null) return false;
                   }
 
-                  if (order.pickupLat == null || order.pickupLng == null) {
+                  final user = Supabase.instance.client.auth.currentUser;
+                  
+                  // Lọc bỏ những cuốc xe tài xế này đã từ chối
+                  if (order.declinedDrivers != null && order.declinedDrivers!.contains(user?.id)) {
+                    return false;
+                  }
+
+                  // Nếu cuốc xe đã được gán đích danh cho một tài xế
+                  if (order.driverId != null && order.driverId!.isNotEmpty) {
+                    return order.driverId == user?.id;
+                  }
+
+                  // Nếu cuốc xe broadcast (chưa gán), thì kiểm tra khoảng cách
+                  if (order.pickupLat == null || order.pickupLng == null || _currentLocation == null) {
                     return false;
                   }
 
                   final dist =
                       Geolocator.distanceBetween(
-                        _mockLocation.latitude,
-                        _mockLocation.longitude,
+                        _currentLocation!.latitude,
+                        _currentLocation!.longitude,
                         order.pickupLat!.toDouble(),
                         order.pickupLng!.toDouble(),
                       ) /
@@ -374,12 +468,18 @@ class _DriverRequestsTabState extends State<_DriverRequestsTab> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue[50],
+                                    color: order.serviceType == 'Food'
+                                        ? Colors.orange[50]
+                                        : Colors.blue[50],
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
-                                    Icons.person_pin_circle,
-                                    color: Colors.blue,
+                                  child: Icon(
+                                    order.serviceType == 'Food'
+                                        ? Icons.fastfood
+                                        : Icons.person_pin_circle,
+                                    color: order.serviceType == 'Food'
+                                        ? Colors.orange
+                                        : Colors.blue,
                                     size: 30,
                                   ),
                                 ),
@@ -399,7 +499,7 @@ class _DriverRequestsTabState extends State<_DriverRequestsTab> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        "Khoảng cách: ~${(Geolocator.distanceBetween(_mockLocation.latitude, _mockLocation.longitude, order.pickupLat!.toDouble(), order.pickupLng!.toDouble()) / 1000).toStringAsFixed(1)} km",
+                                        "Khoảng cách: ~${_currentLocation != null ? (Geolocator.distanceBetween(_currentLocation!.latitude, _currentLocation!.longitude, order.pickupLat!.toDouble(), order.pickupLng!.toDouble()) / 1000).toStringAsFixed(1) : '?'} km",
                                         style: const TextStyle(
                                           color: Colors.grey,
                                           fontSize: 13,
@@ -452,18 +552,22 @@ class _DriverRequestsTabState extends State<_DriverRequestsTab> {
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.circle,
                                   size: 12,
-                                  color: Colors.blue,
+                                  color: order.serviceType == 'Food'
+                                      ? Colors.orange
+                                      : Colors.blue,
                                 ),
                                 const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "Điểm đón: Khách hàng",
-                                    style: TextStyle(color: Colors.grey[700]),
-                                  ),
-                                ),
+                                 Expanded(
+                                   child: Text(
+                                     order.serviceType == 'Food'
+                                         ? 'Điểm lấy hàng: ${order.merchantName}'
+                                         : 'Điểm đón: Khách hàng',
+                                     style: TextStyle(color: Colors.grey[700]),
+                                   ),
+                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -487,60 +591,107 @@ class _DriverRequestsTabState extends State<_DriverRequestsTab> {
                               ],
                             ),
                             const SizedBox(height: 20),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    await _driverService.acceptRideRequest(
-                                      order.id,
-                                    );
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Chấp nhận chuyến thành công! Chuyển sang bản đồ...',
-                                          ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: SizedBox(
+                                    height: 50,
+                                    child: OutlinedButton(
+                                      onPressed: () async {
+                                        final scaffold = ScaffoldMessenger.of(context);
+                                        try {
+                                          final user = Supabase.instance.client.auth.currentUser;
+                                          final isTargeted = order.driverId == user?.id;
+                                          await _driverService.declineRideRequest(
+                                            order.id,
+                                            isTargeted: isTargeted,
+                                          );
+                                          scaffold.showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Đã từ chối chuyến đi này.'),
+                                              backgroundColor: Colors.grey,
+                                            ),
+                                          );
+                                        } catch (e) {
+                                          scaffold.showSnackBar(
+                                            SnackBar(
+                                              content: Text('Lỗi: ${e.toString()}'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        side: const BorderSide(color: Colors.red),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
-                                      );
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              DriverMapScreen(order: order),
+                                      ),
+                                      child: const Text(
+                                        "TỪ CHỐI",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Lỗi: ${e.toString()}'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFE724C),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                child: const Text(
-                                  "CHẤP NHẬN CUỐC",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 2,
+                                  child: SizedBox(
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        final navigator = Navigator.of(context);
+                                        final scaffold = ScaffoldMessenger.of(context);
+                                        try {
+                                          await _driverService.acceptRideRequest(
+                                            order.id,
+                                          );
+                                          scaffold.showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Chấp nhận chuyến thành công! Chuyển sang bản đồ...',
+                                              ),
+                                            ),
+                                          );
+                                          navigator.push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  DriverMapScreen(order: order),
+                                            ),
+                                          );
+                                        } catch (e) {
+                                          scaffold.showSnackBar(
+                                            SnackBar(
+                                              content: Text('Lỗi: ${e.toString()}'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFFE724C),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "CHẤP NHẬN",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                         ),
@@ -889,6 +1040,7 @@ class _DriverProfileTab extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () async {
+                      await DriverService().goOffline();
                       await AuthService().signOut();
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(

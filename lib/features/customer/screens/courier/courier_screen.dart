@@ -135,55 +135,202 @@ class _CourierScreenState extends State<CourierScreen> {
   Future<Map<String, String>?> _showReceiverDetailsDialog() async {
     final nameController = TextEditingController(text: _receiverName);
     final phoneController = TextEditingController(text: _receiverPhone);
+    final formKey = GlobalKey<FormState>();
+
     return showDialog<Map<String, String>>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Thông tin người nhận'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Tên người nhận',
-                prefixIcon: Icon(Icons.person),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Dialog(
+          backgroundColor: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 8,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFE724C).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.contact_mail,
+                          color: Color(0xFFFE724C),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Thông tin người nhận',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).textTheme.titleLarge?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Vui lòng nhập thông tin để tài xế liên hệ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: nameController,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Vui lòng nhập tên người nhận';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Tên người nhận',
+                      labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                      prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFFE724C)),
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[200]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFFE724C), width: 1.5),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Vui lòng nhập số điện thoại';
+                      }
+                      if (!RegExp(r'^[0-9+]{9,11}$').hasMatch(val.trim())) {
+                        return 'Số điện thoại không hợp lệ';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Số điện thoại liên hệ',
+                      labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                      prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFFFE724C)),
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: isDark ? Colors.grey[800]! : Colors.grey[200]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFFE724C), width: 1.5),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context, null),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.grey[600],
+                            side: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            'Bỏ qua',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (formKey.currentState?.validate() ?? false) {
+                              Navigator.pop(context, {
+                                'name': nameController.text.trim(),
+                                'phone': phoneController.text.trim(),
+                              });
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFE724C),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: const Text(
+                            'Lưu',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Số điện thoại',
-                prefixIcon: Icon(Icons.phone),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Bỏ qua'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Vui lòng nhập tên và số điện thoại')),
-                );
-                return;
-              }
-              Navigator.pop(context, {
-                'name': nameController.text.trim(),
-                'phone': phoneController.text.trim(),
-              });
-            },
-            child: const Text('Lưu'),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Future<void> _editReceiverDetailsOnly() async {
+    final details = await _showReceiverDetailsDialog();
+    if (details != null) {
+      setState(() {
+        _receiverName = details['name'];
+        _receiverPhone = details['phone'];
+      });
+    }
   }
 
   Future<void> _startBooking() async {
@@ -468,9 +615,11 @@ class _CourierScreenState extends State<CourierScreen> {
             'Cancelled',
             cancellationReason: 'Lỗi tạo giao dịch VNPAY',
           );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không thể kết nối VNPAY')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Không thể kết nối VNPAY')),
+            );
+          }
           return;
         }
       }
@@ -740,11 +889,29 @@ class _CourierScreenState extends State<CourierScreen> {
                                                 ),
                                               ),
                                               if (_receiverName != null && _receiverName!.isNotEmpty)
-                                                Text(
-                                                  '$_receiverName - ${_receiverPhone ?? ''}',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey,
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 4),
+                                                  child: Row(
+                                                    children: [
+                                                      Text(
+                                                        '$_receiverName - ${_receiverPhone ?? ''}',
+                                                        style: const TextStyle(
+                                                          fontSize: 12,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      GestureDetector(
+                                                        onTap: () {
+                                                          _editReceiverDetailsOnly();
+                                                        },
+                                                        child: const Icon(
+                                                          Icons.edit,
+                                                          size: 14,
+                                                          color: Color(0xFFFE724C),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                             ],

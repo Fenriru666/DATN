@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/features/customer/services/order_service.dart';
 
 class ReviewDialog extends StatefulWidget {
@@ -11,9 +12,19 @@ class ReviewDialog extends StatefulWidget {
 }
 
 class _ReviewDialogState extends State<ReviewDialog> {
-  int _rating = 0;
+  int _driverRating = 5;
+  int _merchantRating = 5;
+  bool _hasDriver = false;
+  bool _hasMerchant = false;
+  bool _isLoading = true;
   final TextEditingController _noteController = TextEditingController();
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrderInfo();
+  }
 
   @override
   void dispose() {
@@ -21,21 +32,50 @@ class _ReviewDialogState extends State<ReviewDialog> {
     super.dispose();
   }
 
-  Future<void> _submitReview() async {
-    if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a star rating.')),
-      );
-      return;
+  Future<void> _loadOrderInfo() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(widget.orderId)
+          .get();
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _hasDriver = data['driverId'] != null;
+          _hasMerchant = data['merchantId'] != null;
+          // If neither exists, default to driver/provider
+          if (!_hasDriver && !_hasMerchant) {
+            _hasDriver = true;
+          }
+          _isLoading = false;
+        });
+      } else {
+        if (mounted) {
+          setState(() {
+            _hasDriver = true;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _hasDriver = true;
+          _isLoading = false;
+        });
+      }
     }
+  }
 
+  Future<void> _submitReview() async {
     setState(() => _isSaving = true);
 
     try {
       await OrderService().updateOrderReview(
         widget.orderId,
-        _rating,
-        _noteController.text.trim(),
+        driverRating: _hasDriver ? _driverRating.toDouble() : null,
+        merchantRating: _hasMerchant ? _merchantRating.toDouble() : null,
+        note: _noteController.text.trim(),
       );
       if (mounted) {
         Navigator.pop(context, true); // Return true when successful
@@ -44,7 +84,7 @@ class _ReviewDialogState extends State<ReviewDialog> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to submit review: $e')));
+        ).showSnackBar(SnackBar(content: Text('Không thể gửi đánh giá: $e')));
       }
     } finally {
       if (mounted) {
@@ -53,94 +93,152 @@ class _ReviewDialogState extends State<ReviewDialog> {
     }
   }
 
+  Widget _buildStarSelector({
+    required String title,
+    required int rating,
+    required Function(int) onRatingChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                return InkWell(
+                  onTap: () => onRatingChanged(index + 1),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 6.0),
+                    child: Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Rate your experience',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // Star Selection
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return IconButton(
-                  icon: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 36,
+        child: _isLoading
+            ? const SizedBox(
+                height: 150,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Đánh giá chuyến đi',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _rating = index + 1;
-                    });
-                  },
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-            // Note TextField
-            TextField(
-              controller: _noteController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Leave a comment (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: _isSaving ? null : () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.grey),
+                  // Driver Rating Section
+                  if (_hasDriver)
+                    _buildStarSelector(
+                      title: 'Đánh giá Tài xế (Vận chuyển)',
+                      rating: _driverRating,
+                      onRatingChanged: (val) {
+                        setState(() => _driverRating = val);
+                      },
                     ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _submitReview,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFE724C),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
+
+                  // Merchant Rating Section
+                  if (_hasMerchant)
+                    _buildStarSelector(
+                      title: 'Đánh giá Cửa hàng / Món ăn',
+                      rating: _merchantRating,
+                      onRatingChanged: (val) {
+                        setState(() => _merchantRating = val);
+                      },
+                    ),
+
+                  // Note TextField
+                  TextField(
+                    controller: _noteController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Nhận xét của bạn (Không bắt buộc)',
+                      hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      contentPadding: const EdgeInsets.all(12),
                     ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('Submit'),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
+                  const SizedBox(height: 24),
+
+                  // Actions
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: _isSaving ? null : () => Navigator.pop(context),
+                          child: const Text(
+                            'Hủy',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _submitReview,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFE724C),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: _isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Gửi',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:flutter/foundation.dart';
 
@@ -21,10 +22,59 @@ class AuthService {
 
         if (data != null) {
           try {
-            return UserModel.fromMap(data, user.id);
+            var userModel = UserModel.fromMap(data, user.id);
+            if (!userModel.isApproved) {
+              // Auto-approve existing accounts for smooth testing
+              try {
+                await _supabase
+                    .from('users')
+                    .update({'is_approved': true})
+                    .eq('id', user.id);
+                userModel = userModel.copyWith(isApproved: true);
+              } catch (e) {
+                debugPrint("Failed to auto-approve user: $e");
+              }
+            }
+            try {
+              final firestoreDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.id)
+                  .get();
+              if (firestoreDoc.exists && firestoreDoc.data() != null) {
+                final fsData = firestoreDoc.data()!;
+                userModel = userModel.copyWith(
+                  rating: fsData['rating'] != null
+                      ? (fsData['rating'] as num).toDouble()
+                      : userModel.rating,
+                  ratingCount: fsData['ratingCount'] != null
+                      ? (fsData['ratingCount'] as num).toInt()
+                      : fsData['rating_count'] != null
+                          ? (fsData['rating_count'] as num).toInt()
+                          : userModel.ratingCount,
+                  completedRides: fsData['completedRides'] != null
+                      ? (fsData['completedRides'] as num).toInt()
+                      : fsData['completed_rides'] != null
+                          ? (fsData['completed_rides'] as num).toInt()
+                          : userModel.completedRides,
+                  tier: fsData['tier'] as String? ?? userModel.tier,
+                  loyaltyPoints: fsData['loyaltyPoints'] != null
+                      ? (fsData['loyaltyPoints'] as num).toInt()
+                      : fsData['loyalty_points'] != null
+                          ? (fsData['loyalty_points'] as num).toInt()
+                          : userModel.loyaltyPoints,
+                  walletBalance: fsData['walletBalance'] != null
+                      ? (fsData['walletBalance'] as num).toDouble()
+                      : fsData['wallet_balance'] != null
+                          ? (fsData['wallet_balance'] as num).toDouble()
+                          : userModel.walletBalance,
+                );
+              }
+            } catch (fsError) {
+              debugPrint("Failed to merge Firestore user data: $fsError");
+            }
+            return userModel;
           } catch (e, st) {
             debugPrint("UserModel parse error: $e\n$st");
-            // DO NOT return null here. Throw an exception so the UI shows the real cause!
             throw Exception("Parse Error: $e");
           }
         } else {
@@ -34,11 +84,7 @@ class AuthService {
           if (user.email!.startsWith('test3')) role = UserRole.driver;
           if (user.email!.startsWith('admin')) role = UserRole.admin;
 
-          bool approved = true;
-          if (role == UserRole.driver || role == UserRole.merchant) {
-            approved =
-                false; // Mock data generated users are technically pending too
-          }
+          bool approved = true; // Auto-approve auto-healed accounts
 
           UserModel newUser = UserModel(
             uid: user.id,
@@ -105,10 +151,8 @@ class AuthService {
 
       final user = res.user;
       if (user == null) throw Exception("Signup failed, user is null");
+      // Auto-approve all roles during sandbox development so testers can log in immediately
       bool approved = true;
-      if (role == UserRole.driver || role == UserRole.merchant) {
-        approved = false;
-      }
 
       // 1. Generate unique referral code for this new user
       String newReferralCode = _generateReferralCode(email, user.id);

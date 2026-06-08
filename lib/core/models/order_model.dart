@@ -1,4 +1,4 @@
-﻿class OrderModel {
+class OrderModel {
   final String id;
   final String userId;
   final String merchantName;
@@ -33,6 +33,9 @@
   // Scheduled Rides (Priority 18)
   final DateTime? scheduledTime;
 
+  // Track drivers who declined this order
+  final List<String>? declinedDrivers;
+
   OrderModel({
     required this.id,
     required this.userId,
@@ -59,6 +62,7 @@
     this.cancellationReason,
     this.usedPoints,
     this.scheduledTime,
+    this.declinedDrivers,
   });
 
   Map<String, dynamic> toMap() {
@@ -88,6 +92,7 @@
       'cancellationReason': cancellationReason,
       'usedPoints': usedPoints ?? 0,
       'scheduledTime': scheduledTime?.toIso8601String(),
+      'declinedDrivers': declinedDrivers,
     };
   }
 
@@ -121,6 +126,9 @@
       usedPoints: map['usedPoints'],
       scheduledTime: map['scheduledTime'] != null
           ? DateTime.parse(map['scheduledTime'])
+          : null,
+      declinedDrivers: map['declinedDrivers'] != null
+          ? List<String>.from(map['declinedDrivers'])
           : null,
     );
   }

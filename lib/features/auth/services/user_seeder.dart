@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math';
@@ -69,6 +70,11 @@ class UserSeeder {
             debugPrint('Supabase document exists for ${user['email']}.');
           }
 
+          // Seed merchant restaurant profile if role is merchant
+          if (user['role'] == UserRole.merchant) {
+            await _seedRestaurantForMerchant(uid, user['email']);
+          }
+
           // Sign out to prepare for next iteration
           await _supabase.auth.signOut();
         }
@@ -89,6 +95,92 @@ class UserSeeder {
     } catch (e) {
       debugPrint('Lỗi kiểm tra số lượng DB: $e');
     }
+  }
+
+  Future<void> _seedRestaurantForMerchant(String uid, String email, {String? mockName}) async {
+    final firestore = FirebaseFirestore.instance;
+    final doc = await firestore.collection('restaurants').doc(uid).get();
+    if (doc.exists) {
+      debugPrint('Restaurant profile already exists for merchant $email');
+      return;
+    }
+
+    debugPrint('Creating restaurant profile for merchant $email...');
+    // Create restaurant
+    String restName = mockName ?? 'Gà Rán KFC - Quận 1';
+    double rating = 4.5 + (Random().nextInt(5) / 10.0); // 4.5 to 5.0
+    int ratingCount = 50 + Random().nextInt(200);
+    String time = '15-25 min';
+    String deliveryFee = '15.000đ';
+    List<String> tags = ['Gà Rán', 'Fast Food', 'Burger', 'Nước Ngọt'];
+    String imageUrl = '0xFFFE724C';
+    
+    // Distribute coordinates in HCMC Center (near 10.7769, 106.7009)
+    double latOffset = (Random().nextDouble() - 0.5) * 0.04; // ~4km spread
+    double lngOffset = (Random().nextDouble() - 0.5) * 0.04; 
+    double latitude = 10.7769 + latOffset;
+    double longitude = 106.7009 + lngOffset;
+
+    if (email == 'test2@gmail.com') {
+      restName = 'Gà Rán KFC - Quận 1';
+      latitude = 10.7769;
+      longitude = 106.7009;
+      tags = ['Gà Rán', 'Fast Food', 'Burger'];
+    }
+
+    await firestore.collection('restaurants').doc(uid).set({
+      'name': restName,
+      'rating': rating,
+      'time': time,
+      'deliveryFee': deliveryFee,
+      'tags': tags,
+      'imageUrl': imageUrl,
+      'ratingCount': ratingCount,
+      'isOnline': true,
+      'latitude': latitude,
+      'longitude': longitude,
+    });
+
+    // Seed Menu
+    final menuItems = [
+      {
+        'name': 'Burger Gà Giòn Spiced',
+        'description': 'Bánh kẹp burger với nhân phi lê gà chiên giòn cay, xà lách và sốt mayonnaise.',
+        'price': 49000.0,
+        'imageUrl': '0xFFFE724C',
+        'isAvailable': true,
+      },
+      {
+        'name': 'Combo 2 Miếng Gà Giòn',
+        'description': '2 miếng gà giòn cay hoặc truyền thống + 1 lon Pepsi mát lạnh.',
+        'price': 89000.0,
+        'imageUrl': '0xFFFE724C',
+        'isAvailable': true,
+      },
+      {
+        'name': 'Khoai Tây Chiên Vừa',
+        'description': 'Khoai tây cắt lát chiên giòn rắc muối nhẹ.',
+        'price': 25000.0,
+        'imageUrl': '0xFFFE724C',
+        'isAvailable': true,
+      },
+      {
+        'name': 'Nước ngọt Pepsi Lon',
+        'description': 'Nước ngọt có gas giải nhiệt tức thì, lon 330ml.',
+        'price': 15000.0,
+        'imageUrl': '0xFFFE724C',
+        'isAvailable': true,
+      },
+    ];
+
+    for (var item in menuItems) {
+      final itemDoc = firestore.collection('restaurants').doc(uid).collection('menu').doc();
+      await itemDoc.set({
+        ...item,
+        'id': itemDoc.id,
+      });
+    }
+    debugPrint('Restaurant profile and menu seeded for merchant $email.');
   }
 
   Future<void> _seed100MockUsers() async {
@@ -128,6 +220,24 @@ class UserSeeder {
           // Cập nhật record bên public.users (upsert tránh lỗi dup key)
           await _supabase.from('users').upsert(newUser.toMap());
           
+          // Nếu user là merchant, tạo restaurant profile tương ứng
+          if (randomRole == UserRole.merchant) {
+            final mockNames = [
+              'Bún Chả Sinh Từ',
+              'Phở Thìn Lò Đúc',
+              'Cơm Tấm Phúc Lộc Thọ',
+              'The Coffee House',
+              'Gong Cha Milk Tea',
+              'Bánh Mì Huỳnh Hoa',
+              'Pizza Company HCMC',
+              'Phúc Long Tea & Coffee',
+              'Highlands Coffee',
+              'Hủ Tiếu Nam Vang Thành Đạt'
+            ];
+            final name = mockNames[random.nextInt(mockNames.length)] + ' $i';
+            await _seedRestaurantForMerchant(uid, email, mockName: name);
+          }
+
           // Nếu user là customer, tạo thêm các order ảo cho đồ thị doanh thu
           if (randomRole == UserRole.customer) {
              int orderCount = 1 + random.nextInt(4); // 1-4 orders

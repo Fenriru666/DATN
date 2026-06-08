@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:datn/features/customer/services/restaurant_service.dart';
 import 'package:datn/features/customer/services/cart_service.dart';
 import 'package:datn/core/models/restaurant_model.dart';
@@ -43,12 +43,19 @@ class RestaurantDetailScreen extends StatelessWidget {
                   shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
                 ),
               ),
-              background: Container(
-                color: imageColor,
-                child: const Center(
-                  child: Icon(Icons.fastfood, size: 80, color: Colors.white54),
-                ),
-              ),
+              background: restaurant.imageUrl.startsWith('http')
+                  ? Image.network(
+                      restaurant.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) => Container(
+                        color: imageColor,
+                        child: const Center(child: Icon(Icons.fastfood, size: 80, color: Colors.white54)),
+                      ),
+                    )
+                  : Container(
+                      color: imageColor,
+                      child: const Center(child: Icon(Icons.fastfood, size: 80, color: Colors.white54)),
+                    ),
             ),
           ),
 
@@ -221,12 +228,19 @@ class _MenuItem extends StatelessWidget {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
             ),
-            child:
-                item
-                    .imageUrl
-                    .isNotEmpty // assuming if not empty it's a color hex or url
-                ? Icon(Icons.fastfood, color: Colors.orange) // simplified
-                : Icon(Icons.fastfood, color: Colors.grey[400]),
+            child: item.imageUrl.startsWith('http')
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      item.imageUrl,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stack) =>
+                          const Icon(Icons.fastfood, color: Colors.orange),
+                    ),
+                  )
+                : const Icon(Icons.fastfood, color: Colors.orange),
           ),
           const SizedBox(width: 16),
           Expanded(

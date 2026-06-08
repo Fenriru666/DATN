@@ -49,3 +49,19 @@ app.*.map.json
 
 # Node modules
 node_modules/
+
+# Firebase Service Account Key
+serviceAccountKey.json
+backend_ai/serviceAccountKey.json
+
+# Supabase temp directory
+supabase/.temp/
+
+# Root test/scratch scripts
+check_rls.dart
+check_updated.dart
+test_approve.dart
+test_deno.ts
+test_hash.js
+
+

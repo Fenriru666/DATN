@@ -215,15 +215,19 @@ class OrderService {
   }
 
   Future<void> updateOrderReview(
-    String orderId,
-    num rating,
-    String note,
-  ) async {
+    String orderId, {
+    double? driverRating,
+    double? merchantRating,
+    required String note,
+  }) async {
     // 1. Update order document
-    await _firestore.collection('orders').doc(orderId).update({
-      'rating': rating,
+    final updates = <String, dynamic>{
       'reviewNote': note,
-    });
+    };
+    if (driverRating != null) updates['rating'] = driverRating;
+    if (merchantRating != null) updates['merchantRating'] = merchantRating;
+
+    await _firestore.collection('orders').doc(orderId).update(updates);
 
     // 2. Fetch order to get the target driver or merchant
     final orderDoc = await _firestore.collection('orders').doc(orderId).get();
@@ -233,29 +237,65 @@ class OrderService {
     final driverId = data['driverId'] as String?;
     final merchantId = data['merchantId'] as String?;
 
-    // The target is usually the provider of the service
-    final targetId = driverId ?? merchantId;
-    if (targetId == null) return;
+    Future<void> updateTargetRating(String targetId, double score, bool isDriverTarget) async {
+      double currentRating = 5.0;
+      int currentCount = 0;
 
-    // 3. Fetch user (Driver/Merchant) to update their total rating
-    final userDoc = await _firestore.collection('users').doc(targetId).get();
-    if (!userDoc.exists) return;
+      try {
+        final userData = await _supabase
+            .from('users')
+            .select('rating, rating_count')
+            .eq('id', targetId)
+            .single();
+        currentRating = (userData['rating'] ?? 5.0).toDouble();
+        currentCount = (userData['rating_count'] ?? 0) as int;
+      } catch (_) {
+        try {
+          final userDoc = await _firestore.collection('users').doc(targetId).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            currentRating = (userData['rating'] ?? 5.0).toDouble();
+            currentCount = (userData['ratingCount'] ?? 0) as int;
+          }
+        } catch (_) {}
+      }
 
-    final userData = userDoc.data()!;
-    final currentRating = (userData['rating'] ?? 5.0).toDouble();
-    final currentCount = (userData['ratingCount'] ?? 0) as int;
+      // Calculate new average rating
+      final newCount = currentCount + 1;
+      final newRating = ((currentRating * currentCount) + score) / newCount;
+      final finalRating = double.parse(newRating.toStringAsFixed(1));
 
-    // 4. Calculate new average rating
-    // Formula: ((oldAvg * oldCount) + newRating) / (oldCount + 1)
-    final newCount = currentCount + 1;
-    final newRating =
-        ((currentRating * currentCount) + rating.toDouble()) / newCount;
+      // Save back to databases
+      try {
+        await _supabase.from('users').update({
+          'rating': finalRating,
+          'rating_count': newCount,
+        }).eq('id', targetId);
+      } catch (_) {}
 
-    // 5. Save back to the user document
-    await _firestore.collection('users').doc(targetId).update({
-      'rating': double.parse(newRating.toStringAsFixed(1)), // Keep 1 decimal
-      'ratingCount': newCount,
-    });
+      try {
+        await _firestore.collection('users').doc(targetId).set({
+          'rating': finalRating,
+          'ratingCount': newCount,
+        }, SetOptions(merge: true));
+      } catch (_) {}
+
+      if (isDriverTarget) {
+        try {
+          await _firestore.collection('drivers').doc(targetId).set({
+            'rating': finalRating,
+            'ratingCount': newCount,
+          }, SetOptions(merge: true));
+        } catch (_) {}
+      }
+    }
+
+    if (driverId != null && driverRating != null) {
+      await updateTargetRating(driverId, driverRating, true);
+    }
+    if (merchantId != null && merchantRating != null) {
+      await updateTargetRating(merchantId, merchantRating, false);
+    }
   }
 
   // Stream a driver's location for Real-time tracking

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:datn/features/auth/services/auth_service.dart';
@@ -15,14 +15,14 @@ class SavedPlacesScreen extends StatefulWidget {
 }
 
 class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  SupabaseClient get _supabase => Supabase.instance.client;
   final AuthService _authService = AuthService();
 
   Stream<UserModel?> _streamCurrentUser() {
-    final user = _auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return const Stream.empty();
-    return _firestore.collection('users').doc(user.uid).snapshots().map((doc) {
+    return _firestore.collection('users').doc(user.id).snapshots().map((doc) {
       if (doc.exists) return UserModel.fromMap(doc.data()!, doc.id);
       return null;
     });
@@ -37,7 +37,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
     if (result != null) {
       try {
         await _authService.updateSavedPlace(
-          _auth.currentUser!.uid,
+          _supabase.auth.currentUser!.id,
           label,
           result,
         );

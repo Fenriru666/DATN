@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -51,12 +52,12 @@ class AdminService {
 
   // Approve a user
   Future<void> approveUser(String uid) async {
-    await _supabase.from('users').update({'is_approved': true}).eq('id', uid);
+    await _supabase.rpc('admin_approve_user', params: {'p_user_id': uid});
   }
 
   // Ban or Suspend a user
   Future<void> banUser(String uid) async {
-    await _supabase.from('users').update({'is_approved': false}).eq('id', uid);
+    await _supabase.rpc('admin_ban_user', params: {'p_user_id': uid});
   }
 
   // Clean up database: Keep only 50 users and 500 orders
@@ -83,7 +84,7 @@ class AdminService {
   }
 
   // Helper for System Stats
-  Future<Map<String, dynamic>> getSystemStats() async {
+  Future<Map<String, dynamic>> getSystemStats({int days = 7}) async {
     try {
       int totalUsers = 0;
       int totalOrders = 0;
@@ -97,34 +98,43 @@ class AdminService {
       custCount = await _supabase.from('users').count(CountOption.exact).eq('role', 'customer');
       driverCount = await _supabase.from('users').count(CountOption.exact).eq('role', 'driver');
       merchantCount = await _supabase.from('users').count(CountOption.exact).eq('role', 'merchant');
-      totalOrders = await _supabase.from('orders').count(CountOption.exact).eq('status', 'Completed');
       
-      final orders = await _supabase.from('orders')
-          .select('total_price, created_at')
-          .eq('status', 'Completed')
-          .order('created_at', ascending: false)
-          .limit(2000);
+      // Fetch completed orders from Firestore
+      final firestore = FirebaseFirestore.instance;
+      final completedOrdersSnapshot = await firestore
+          .collection('orders')
+          .where('status', isEqualTo: 'Completed')
+          .get();
+
+      totalOrders = completedOrdersSnapshot.docs.length;
 
       final now = DateTime.now();
       final todayStart = DateTime(now.year, now.month, now.day);
           
-      List<double> weeklyRevenue = List.filled(7, 0.0);
+      List<double> dailyRevenue = List.filled(days, 0.0);
       double maxDailyOption = 100000.0;
 
-      for (var order in orders) {
-        final price = double.tryParse(order['total_price']?.toString() ?? '0') ?? 0.0;
+      for (var doc in completedOrdersSnapshot.docs) {
+        final data = doc.data();
+        final price = (data['totalPrice'] as num?)?.toDouble() ?? 0.0;
         totalRevenue += price;
 
-        final createdAtStr = order['created_at'];
-        if (createdAtStr != null) {
-          DateTime createdAt = DateTime.tryParse(createdAtStr) ?? todayStart;
+        final createdAtVal = data['createdAt'];
+        DateTime? createdAt;
+        if (createdAtVal is Timestamp) {
+          createdAt = createdAtVal.toDate();
+        } else if (createdAtVal is String) {
+          createdAt = DateTime.tryParse(createdAtVal);
+        }
+
+        if (createdAt != null) {
           final diffDays = todayStart.difference(DateTime(createdAt.year, createdAt.month, createdAt.day)).inDays;
           
-          if (diffDays >= 0 && diffDays < 7) {
-            final index = 6 - diffDays;
-            weeklyRevenue[index] += price;
-            if (weeklyRevenue[index] > maxDailyOption) {
-              maxDailyOption = weeklyRevenue[index];
+          if (diffDays >= 0 && diffDays < days) {
+            final index = (days - 1) - diffDays;
+            dailyRevenue[index] += price;
+            if (dailyRevenue[index] > maxDailyOption) {
+              maxDailyOption = dailyRevenue[index];
             }
           }
         }
@@ -142,11 +152,11 @@ class AdminService {
           'driver': driverCount,
           'merchant': merchantCount,
         },
-        'weeklyRevenue': weeklyRevenue,
+        'dailyRevenue': dailyRevenue,
         'maxDailyRevenue': maxDailyOption,
       };
     } catch (e, st) {
-      debugPrint("Error fetching Supabase system stats: $e\\n$st");
+      debugPrint("Error fetching system stats: $e\n$st");
       rethrow;
     }
   }

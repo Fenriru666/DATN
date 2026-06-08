@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:datn/core/models/order_model.dart';
 import 'package:intl/intl.dart';
 
@@ -22,11 +23,11 @@ class PartnerReviewScreen extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: Supabase.instance.client
-            .from('orders')
-            .stream(primaryKey: ['id'])
-            .eq(isDriver ? 'driver_id' : 'merchant_id', userId),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('orders')
+            .where(isDriver ? 'driverId' : 'merchantId', isEqualTo: userId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -36,13 +37,13 @@ class PartnerReviewScreen extends StatelessWidget {
             return Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}'));
           }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return _buildEmptyState();
           }
 
           // Parse and filter locally
-          final allOrders = snapshot.data!.map((data) {
-            return OrderModel.fromMap(data, data['id']);
+          final allOrders = snapshot.data!.docs.map((doc) {
+            return OrderModel.fromMap(doc.data(), doc.id);
           }).toList();
 
           // Client-side sort by createdAt descending
@@ -100,6 +101,14 @@ class PartnerReviewScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                          const SizedBox(width: 6),
+                          CustomerNameText(userId: order.userId),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       if (order.reviewNote != null &&
                           order.reviewNote!.isNotEmpty)
@@ -129,42 +138,87 @@ class PartnerReviewScreen extends StatelessWidget {
                           Text(
                             'Chuyến: ${order.id.substring(0, 8)} • ${order.serviceType}',
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
+                );
+              },
+            );
+          },
+        ),
+      );
+    }
+
+    Widget _buildEmptyState() {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.rate_review_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Chưa có Đánh giá nào',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Dịch vụ của bạn chưa nhận được phản hồi nào từ khách hàng.',
+              style: TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.rate_review_outlined, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'Chưa có Đánh giá nào',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Dịch vụ của bạn chưa nhận được phản hồi nào từ khách hàng.',
-            style: TextStyle(color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
+  class CustomerNameText extends StatefulWidget {
+    final String userId;
+    const CustomerNameText({super.key, required this.userId});
+
+    @override
+    State<CustomerNameText> createState() => _CustomerNameTextState();
   }
-}
+
+  class _CustomerNameTextState extends State<CustomerNameText> {
+    String _name = "Khách hàng";
+
+    @override
+    void initState() {
+      super.initState();
+      _loadName();
+    }
+
+    Future<void> _loadName() async {
+      try {
+        final response = await Supabase.instance.client
+            .from('users')
+            .select('name')
+            .eq('id', widget.userId)
+            .single();
+        if (mounted) {
+          setState(() {
+            _name = response['name'] ?? "Khách hàng";
+          });
+        }
+      } catch (_) {}
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      return Text(
+        _name,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: Colors.grey,
+        ),
+      );
+    }
+  }

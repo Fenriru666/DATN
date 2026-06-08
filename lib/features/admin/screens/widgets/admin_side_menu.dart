@@ -3,6 +3,8 @@ import 'package:datn/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:datn/features/admin/screens/admin_user_management_screen.dart';
 import 'package:datn/features/admin/screens/admin_promotion_screen.dart';
 import 'package:datn/features/admin/screens/admin_settings_screen.dart';
+import 'package:datn/features/admin/screens/admin_notification_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminSideMenu extends StatelessWidget {
   final String currentRoute;
@@ -71,6 +73,22 @@ class AdminSideMenu extends StatelessWidget {
                     }
                   },
                 ),
+                _DrawerListTile(
+                  title: "Thông Báo",
+                  icon: Icons.notifications_rounded,
+                  isSelected: currentRoute == 'notifications',
+                  onTap: () {
+                    if (currentRoute != 'notifications') {
+                      Navigator.of(context).pushReplacement(
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) => const AdminNotificationScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    }
+                  },
+                ),
                 
                 const SizedBox(height: 24),
                 _buildSectionHeader('HỆ THỐNG'),
@@ -91,10 +109,11 @@ class AdminSideMenu extends StatelessWidget {
                   },
                 ),
                 _DrawerListTile(
-                  title: "Quay lại ứng dụng",
-                  icon: Icons.exit_to_app_rounded,
+                  title: "Đăng xuất",
+                  icon: Icons.logout_rounded,
                   isSelected: false,
                   onTap: () {
+                    Supabase.instance.client.auth.signOut();
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                 ),

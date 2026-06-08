@@ -1,4 +1,4 @@
-﻿import 'package:datn/features/admin/screens/admin_dashboard_screen.dart';
+import 'package:datn/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:datn/features/auth/screens/login_screen.dart';
 import 'package:datn/features/auth/screens/role_selection_screen.dart';
@@ -156,7 +156,7 @@ class RootDispatcher extends ConsumerWidget {
               const SizedBox(height: 16),
               const Text(
                 "Tài khoản Đối Tác của bạn đã được ghi nhận và đang chờ Admin hệ thống phê duyệt. Quá trình này có thể mất một vài ngày làm việc. Vui lòng quay lại sau!",
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),

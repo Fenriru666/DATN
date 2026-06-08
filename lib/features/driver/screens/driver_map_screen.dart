@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:datn/features/driver/services/driver_service.dart';
 import 'package:datn/features/customer/services/order_service.dart';
 import 'package:datn/core/models/order_model.dart';
@@ -12,6 +13,7 @@ import 'package:datn/core/widgets/cancel_reason_dialog.dart';
 import 'package:datn/core/widgets/sos_button.dart';
 import 'package:datn/core/models/emergency_model.dart';
 import 'package:datn/core/services/emergency_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:datn/features/chat/screens/in_app_chat_screen.dart';
@@ -34,43 +36,143 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   LatLng? _currentDriverLocation;
 
   String _orderStatus = 'Accepted';
+  String _customerName = 'Đang tải...';
+  String _customerPhone = "";
+  double _distanceToTarget = 0.0; // km — cập nhật real-time
 
-  // Fake tracking for demo purposes
-  Timer? _simulationTimer;
-  int _currentPathIndex = 0;
+  StreamSubscription<Position>? _positionStreamSubscription;
+  Timer? _distanceTimer; // Force rebuild khoảng cách mỗi 3 giây
 
   @override
   void initState() {
     super.initState();
-    _initializeMockLocation();
     _orderStatus = widget.order.status == 'Pending'
         ? 'Accepted'
         : widget.order.status;
-    _getRoute();
+    _initLocationAndRoute();
+    _loadCustomerInfo();
+
+    // ✅ Cập nhật khoảng cách real-time mỗi 3 giây
+    _distanceTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) {
+        setState(() {
+          _distanceToTarget = _calculateRealTimeDistance();
+        });
+      }
+    });
   }
 
-  void _initializeMockLocation() {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null && user.email == 'test3@gmail.com') {
-      // Mock start: Tùng Thiện Vương, Phường 11, Quận 8, TPHCM
-      _currentDriverLocation = const LatLng(10.741639, 106.660144);
-    } else {
-      // Mock start: Nhà thờ Đức Bà (default)
-      _currentDriverLocation = const LatLng(10.7769, 106.7009);
+  Future<void> _loadCustomerInfo() async {
+    // Fallback 1: thử load từ Supabase bằng userId
+    final uid = widget.order.userId;
+    if (uid.isNotEmpty) {
+      try {
+        final response = await Supabase.instance.client
+            .from('users')
+            .select('name, phone')
+            .eq('id', uid)
+            .single();
+        if (mounted) {
+          setState(() {
+            final rawName = response['name']?.toString().trim();
+            _customerName = (rawName != null && rawName.isNotEmpty)
+                ? rawName
+                : _extractNameFromOrder();
+            _customerPhone = response['phone'] ?? '';
+          });
+        }
+        return;
+      } catch (e) {
+        debugPrint('Failed to load customer info from Supabase: $e');
+      }
     }
+    // Fallback 2: lấy tên từ merchantName trong order
+    if (mounted) {
+      setState(() {
+        _customerName = _extractNameFromOrder();
+      });
+    }
+  }
+
+  /// Trích tên khách từ merchantName (format: "TenTaiXe (Provider)")
+  String _extractNameFromOrder() {
+    final merchant = widget.order.merchantName;
+    if (merchant.isNotEmpty) {
+      final parenIdx = merchant.indexOf('(');
+      if (parenIdx > 0) return merchant.substring(0, parenIdx).trim();
+      return merchant.trim();
+    }
+    return 'Khách hàng';
+  }
+
+  Future<void> _initLocationAndRoute() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _currentDriverLocation = LatLng(position.latitude, position.longitude);
+        });
+        _driverService.updateOrderLocation(
+          widget.order.id,
+          _currentDriverLocation!,
+        ).catchError((e) => debugPrint("Initial Order Location Update Error: $e"));
+        _getRoute();
+        _startLocationUpdates();
+      }
+    } catch (e) {
+      debugPrint("Failed to get initial location: $e");
+      if (mounted) {
+        setState(() {
+          _currentDriverLocation = const LatLng(10.7769, 106.7009);
+        });
+        _driverService.updateOrderLocation(
+          widget.order.id,
+          _currentDriverLocation!,
+        ).catchError((e) => debugPrint("Initial Order Location Update Error: $e"));
+        _getRoute();
+        _startLocationUpdates();
+      }
+    }
+  }
+
+  void _startLocationUpdates() {
+    _positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      ),
+    ).listen((Position position) {
+      if (!mounted) return;
+      setState(() {
+        _currentDriverLocation = LatLng(position.latitude, position.longitude);
+      });
+      // Update DB with error handling to prevent unhandled async exceptions
+      _driverService.updateLocation(_currentDriverLocation!).catchError((e) {
+        debugPrint("Driver Location Update Error: $e");
+      });
+      _driverService.updateOrderLocation(
+        widget.order.id,
+        _currentDriverLocation!,
+      ).catchError((e) {
+        debugPrint("Order Location Update Error: $e");
+      });
+    });
   }
 
   @override
   void dispose() {
-    _simulationTimer?.cancel();
+    _distanceTimer?.cancel();
+    _positionStreamSubscription?.cancel();
     super.dispose();
   }
 
   Future<void> _getRoute() async {
-    _simulationTimer?.cancel();
     setState(() {
       _isLoadingRoute = true;
-      _currentPathIndex = 0;
       _routePoints.clear();
     });
 
@@ -98,12 +200,11 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       LatLng end;
 
       if (_orderStatus == 'Accepted') {
-        start = _currentDriverLocation!;
+        start = _currentDriverLocation ?? pickup;
         end = pickup;
       } else {
-        start = pickup;
+        start = _currentDriverLocation ?? pickup; // Sử dụng tọa độ thật của tài xế thay vì fake về điểm đón
         end = dropoff;
-        _currentDriverLocation = pickup;
       }
 
       final url = Uri.parse(
@@ -128,8 +229,6 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           ),
         );
       }
-
-      _startDriverSimulation();
     } catch (e) {
       debugPrint("Route error: $e");
     } finally {
@@ -137,57 +236,32 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     }
   }
 
-  void _startDriverSimulation() {
-    if (_routePoints.isEmpty) return;
+  double _calculateRealTimeDistance() {
+    if (_currentDriverLocation == null) return 0.0;
+    LatLng destination;
+    if (_orderStatus == 'Accepted' || _orderStatus == 'Arrived') {
+      destination = widget.order.pickupLat != null && widget.order.pickupLng != null
+          ? LatLng(widget.order.pickupLat!.toDouble(), widget.order.pickupLng!.toDouble())
+          : const LatLng(10.7800, 106.7020);
+    } else {
+      destination = widget.order.dropoffLat != null && widget.order.dropoffLng != null
+          ? LatLng(widget.order.dropoffLat!.toDouble(), widget.order.dropoffLng!.toDouble())
+          : const LatLng(10.7850, 106.7080);
+    }
 
-    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      if (_currentPathIndex < _routePoints.length - 1) {
-        setState(() {
-          _currentPathIndex++;
-          _currentDriverLocation = _routePoints[_currentPathIndex];
-        });
-        // Update DB
-        _driverService.updateLocation(_currentDriverLocation!);
-        _driverService.updateOrderLocation(
-          widget.order.id,
-          _currentDriverLocation!,
-        );
-      } else {
-        timer.cancel();
-      }
-    });
+    return Geolocator.distanceBetween(
+      _currentDriverLocation!.latitude,
+      _currentDriverLocation!.longitude,
+      destination.latitude,
+      destination.longitude,
+    ) / 1000;
   }
 
   // Utilities to decode polyline from Goong Maps
   List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> poly = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      poly.add(LatLng(lat / 1E5, lng / 1E5));
-    }
-    return poly;
+    PolylinePoints polylinePoints = PolylinePoints();
+    List<PointLatLng> result = polylinePoints.decodePolyline(encoded);
+    return result.map((point) => LatLng(point.latitude, point.longitude)).toList();
   }
 
   @override
@@ -202,9 +276,11 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Bản Đồ Chuyến Đi',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          widget.order.serviceType == 'Food'
+              ? 'Đồ Ăn - Bản Đồ Giao Hàng'
+              : 'Bản Đồ Chuyến Đi',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -223,15 +299,16 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                 urlTemplate:
                     'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
               ),
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: _routePoints,
-                    color: Colors.blue,
-                    strokeWidth: 4.0,
-                  ),
-                ],
-              ),
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints,
+                      color: Colors.blue,
+                      strokeWidth: 4.0,
+                    ),
+                  ],
+                ),
               MarkerLayer(
                 markers: [
                   // Driver Marker
@@ -255,7 +332,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                         ),
                       ),
                     ),
-                  // Pickup Marker
+                  // Pickup Marker (cửa hàng cho Food, điểm đón cho Ride)
                   Marker(
                     point: pickup,
                     width: 40,
@@ -268,9 +345,13 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                           BoxShadow(color: Colors.black26, blurRadius: 4),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.person_pin_circle,
-                        color: Colors.blue,
+                      child: Icon(
+                        widget.order.serviceType == 'Food'
+                            ? Icons.store
+                            : Icons.person_pin_circle,
+                        color: widget.order.serviceType == 'Food'
+                            ? Colors.orange
+                            : Colors.blue,
                         size: 28,
                       ),
                     ),
@@ -345,7 +426,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("ðŸš¨ BÁO ĐỘNG ĐÃ ĐƯỢC PHÁT ĐI!"),
+                        content: Text("🚨 BÁO ĐỘNG ĐÃ ĐƯỢC PHÁT ĐI!"),
                         backgroundColor: Colors.red,
                         duration: Duration(seconds: 5),
                       ),
@@ -390,33 +471,87 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: widget.order.serviceType == 'Food'
+                              ? Colors.orange[50]
+                              : Colors.blue[50],
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.person, color: Colors.blue),
+                        child: Icon(
+                          widget.order.serviceType == 'Food'
+                              ? Icons.fastfood
+                              : Icons.person,
+                          color: widget.order.serviceType == 'Food'
+                              ? Colors.orange
+                              : Colors.blue,
+                        ),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Khách hàng",
-                              style: TextStyle(
+                              _customerName,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
                             ),
                             Text(
-                              "Cách bạn ~2.5km",
-                              style: TextStyle(color: Colors.grey),
+                              _currentDriverLocation == null
+                                  ? 'Đang tính khoảng cách...'
+                                  : _orderStatus == 'Accepted'
+                                      ? widget.order.merchantId == 'courier_service'
+                                          ? 'Đến điểm nhận hàng: ${_distanceToTarget.toStringAsFixed(1)} km'
+                                          : widget.order.serviceType == 'Food'
+                                              ? 'Đến cửa hàng: ${_distanceToTarget.toStringAsFixed(1)} km'
+                                              : 'Đến điểm đón: ${_distanceToTarget.toStringAsFixed(1)} km'
+                                      : _orderStatus == 'Arrived'
+                                          ? widget.order.merchantId == 'courier_service'
+                                              ? 'Đã đến điểm nhận. Đang lấy hàng...'
+                                              : widget.order.serviceType == 'Food'
+                                                  ? 'Đang chờ lấy hàng...'
+                                                  : 'Đang chờ khách...'
+                                          : widget.order.merchantId == 'courier_service'
+                                              ? 'Đang giao đến người nhận: ${_distanceToTarget.toStringAsFixed(1)} km'
+                                              : widget.order.serviceType == 'Food'
+                                                  ? 'Đến địa chỉ giao: ${_distanceToTarget.toStringAsFixed(1)} km'
+                                                  : 'Đến điểm đến: ${_distanceToTarget.toStringAsFixed(1)} km',
+                              style: TextStyle(
+                                color: _orderStatus == 'InProgress'
+                                    ? Colors.blue[700]
+                                    : Colors.grey[600],
+                                fontWeight: _orderStatus == 'InProgress'
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.phone, color: Colors.green),
-                        onPressed: () {},
+                        onPressed: () async {
+                          if (_customerPhone.isNotEmpty) {
+                            final Uri launchUri = Uri(
+                              scheme: 'tel',
+                              path: _customerPhone,
+                            );
+                            if (await canLaunchUrl(launchUri)) {
+                              await launchUrl(launchUri);
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Không thể thực hiện cuộc gọi')),
+                                );
+                              }
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Khách hàng không có số điện thoại')),
+                            );
+                          }
+                        },
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.green[50],
                         ),
@@ -431,7 +566,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                               builder: (_) => InAppChatScreen(
                                 orderId: widget.order.id,
                                 peerId: widget.order.userId,
-                                peerName: "Khách hàng",
+                                peerName: _customerName,
                               ),
                             ),
                           );
@@ -469,6 +604,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                                     'Cancelled',
                                     cancellationReason: reason,
                                   );
+                                  await _driverService.updateBusyStatus(false);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -510,6 +646,12 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                                   widget.order.id,
                                   'Arrived',
                                 );
+                                if (_currentDriverLocation != null) {
+                                  await _driverService.updateOrderLocation(
+                                    widget.order.id,
+                                    _currentDriverLocation!,
+                                  ).catchError((e) => debugPrint("Error updating order location: $e"));
+                                }
                                 if (context.mounted) {
                                   setState(() {
                                     _orderStatus = 'Arrived';
@@ -536,9 +678,13 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              "ĐÃ ĐẾN NÆ I",
-                              style: TextStyle(
+                            child: Text(
+                              widget.order.merchantId == 'courier_service'
+                                  ? 'ĐÃ ĐẾN ĐIỂM NHẬN HÀNG'
+                                  : widget.order.serviceType == 'Food'
+                                      ? 'ĐÃ ĐẾN CỬA HÀNG'
+                                      : 'ĐÃ ĐẾN NƠI',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -557,6 +703,12 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                               widget.order.id,
                               'InProgress',
                             );
+                            if (_currentDriverLocation != null) {
+                              await _driverService.updateOrderLocation(
+                                widget.order.id,
+                                _currentDriverLocation!,
+                              ).catchError((e) => debugPrint("Error updating order location: $e"));
+                            }
                             if (context.mounted) {
                               setState(() {
                                 _orderStatus = 'InProgress';
@@ -579,9 +731,13 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          "BẮT ĐẦU CHUYẾN ĐI",
-                          style: TextStyle(
+                        child: Text(
+                          widget.order.merchantId == 'courier_service'
+                              ? 'ĐÃ NHẬN HÀNG - BẮT ĐẦU GIAO'
+                              : widget.order.serviceType == 'Food'
+                                  ? 'ĐÃ LẤY HÀNG - BẮT ĐẦU GIAO'
+                                  : 'BẮT ĐẦU CHUYỂN ĐI',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -599,6 +755,8 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                               widget.order.id,
                               'Completed',
                             );
+                            await _driverService.updateBusyStatus(false);
+                            await _driverService.goOffline();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -626,9 +784,13 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          "HOÀN THÀNH CHUYẾN",
-                          style: TextStyle(
+                        child: Text(
+                          widget.order.merchantId == 'courier_service'
+                              ? 'ĐÃ GIAO HÀNG ĐẾN NGƯỜI NHẬN'
+                              : widget.order.serviceType == 'Food'
+                                  ? 'ĐÃ GIAO HÀNG XONG'
+                                  : 'HOÀN THÀNH CHUYẾN',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -643,4 +805,5 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       ),
     );
   }
+
 }

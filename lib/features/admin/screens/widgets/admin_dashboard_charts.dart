@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 class RevenueLineChart extends StatelessWidget {
-  final List<double> weeklyRevenue;
+  final List<double> dailyRevenue;
   final double maxRevenue;
 
   const RevenueLineChart({
     super.key,
-    required this.weeklyRevenue,
+    required this.dailyRevenue,
     required this.maxRevenue,
   });
 
@@ -30,9 +31,11 @@ class RevenueLineChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Biểu đồ danh thu (7 Ngày qua)',
-            style: TextStyle(
+          Text(
+            dailyRevenue.length <= 7
+                ? 'Biểu đồ doanh thu (7 Ngày qua)'
+                : 'Biểu đồ doanh thu (${dailyRevenue.length} Ngày qua)',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -62,8 +65,12 @@ class RevenueLineChart extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
-                      interval: 1,
-                      getTitlesWidget: bottomTitleWidgets,
+                      interval: dailyRevenue.length <= 7
+                          ? 1
+                          : dailyRevenue.length <= 30
+                              ? 5
+                              : 15,
+                      getTitlesWidget: (val, meta) => bottomTitleWidgets(val, meta, dailyRevenue.length),
                     ),
                   ),
                   leftTitles: AxisTitles(
@@ -77,19 +84,19 @@ class RevenueLineChart extends StatelessWidget {
                 ),
                 borderData: FlBorderData(show: false),
                 minX: 0,
-                maxX: 6,
+                maxX: (dailyRevenue.length - 1).toDouble(),
                 minY: 0,
                 maxY: maxRevenue == 0 ? 100000 : maxRevenue * 1.2,
                 lineBarsData: [
                   LineChartBarData(
-                    spots: List.generate(7, (index) {
-                      return FlSpot(index.toDouble(), weeklyRevenue[index]);
+                    spots: List.generate(dailyRevenue.length, (index) {
+                      return FlSpot(index.toDouble(), dailyRevenue[index]);
                     }),
-                    isCurved: true,
+                    isCurved: dailyRevenue.length <= 30,
                     color: Colors.indigo,
-                    barWidth: 4,
+                    barWidth: dailyRevenue.length > 30 ? 2.5 : 4.0,
                     isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
+                    dotData: FlDotData(show: dailyRevenue.length <= 7),
                     belowBarData: BarAreaData(
                       show: true,
                       color: Colors.indigo.withAlpha(30),
@@ -104,38 +111,31 @@ class RevenueLineChart extends StatelessWidget {
     );
   }
 
-  Widget bottomTitleWidgets(double value, TitleMeta meta) {
+  Widget bottomTitleWidgets(double value, TitleMeta meta, int totalDays) {
     const style = TextStyle(
       fontWeight: FontWeight.bold,
-      fontSize: 12,
+      fontSize: 10,
       color: Colors.grey,
     );
+    final index = value.toInt();
+    if (index < 0 || index >= totalDays) return const SizedBox.shrink();
+
+    final date = DateTime.now().subtract(Duration(days: (totalDays - 1) - index));
     Widget text;
-    switch (value.toInt()) {
-      case 0:
-        text = const Text('T2', style: style);
-        break;
-      case 1:
-        text = const Text('T3', style: style);
-        break;
-      case 2:
-        text = const Text('T4', style: style);
-        break;
-      case 3:
-        text = const Text('T5', style: style);
-        break;
-      case 4:
-        text = const Text('T6', style: style);
-        break;
-      case 5:
-        text = const Text('T7', style: style);
-        break;
-      case 6:
-        text = const Text('CN', style: style);
-        break;
-      default:
-        text = const Text('', style: style);
-        break;
+    if (totalDays <= 7) {
+      String dayStr = '';
+      switch (date.weekday) {
+        case 1: dayStr = 'T2'; break;
+        case 2: dayStr = 'T3'; break;
+        case 3: dayStr = 'T4'; break;
+        case 4: dayStr = 'T5'; break;
+        case 5: dayStr = 'T6'; break;
+        case 6: dayStr = 'T7'; break;
+        case 7: dayStr = 'CN'; break;
+      }
+      text = Text(dayStr, style: style);
+    } else {
+      text = Text(DateFormat('dd/MM').format(date), style: style);
     }
 
     return SideTitleWidget(meta: meta, child: text);

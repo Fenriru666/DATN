@@ -14,15 +14,21 @@ class AdminPromotionScreen extends StatefulWidget {
 
 class _AdminPromotionScreenState extends State<AdminPromotionScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  late final Stream<List<Map<String, dynamic>>> _promotionsStream;
+  Stream<List<Map<String, dynamic>>>? _promotionsStream;
+
+  void _refreshData() {
+    setState(() {
+      _promotionsStream = _supabase
+          .from('promotions')
+          .stream(primaryKey: ['id'])
+          .order('expiration_date', ascending: false);
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    _promotionsStream = _supabase
-        .from('promotions')
-        .stream(primaryKey: ['id'])
-        .order('expiration_date', ascending: false);
+    _refreshData();
   }
 
   @override
@@ -127,11 +133,15 @@ class _AdminPromotionScreenState extends State<AdminPromotionScreen> {
     final formatter = DateFormat('dd/MM/yyyy HH:mm');
     final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: SingleChildScrollView(
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
           dataRowMinHeight: 70,
           dataRowMaxHeight: 70,
           horizontalMargin: 24,
@@ -241,8 +251,11 @@ class _AdminPromotionScreenState extends State<AdminPromotionScreen> {
             );
           }).toList(),
         ),
-      ),
-    );
+              ),
+            ),
+          );
+        },
+      );
   }
 
   Future<void> _deletePromo(String id) async {
@@ -273,7 +286,10 @@ class _AdminPromotionScreenState extends State<AdminPromotionScreen> {
     if (confirm == true) {
       try {
         await _supabase.from('promotions').delete().eq('id', id);
-        if (mounted) UIHelpers.showSnackBar(context, 'Xóa mã thành công!');
+        if (mounted) {
+          UIHelpers.showSnackBar(context, 'Xóa mã thành công!');
+          _refreshData();
+        }
       } catch (e) {
         if (mounted) UIHelpers.showErrorDialog(context, 'Lỗi', e.toString());
       }
@@ -448,6 +464,7 @@ class _AdminPromotionScreenState extends State<AdminPromotionScreen> {
                         if (context.mounted) {
                           Navigator.pop(ctx);
                           UIHelpers.showSnackBar(context, 'Tạo mã thành công!');
+                          _refreshData();
                         }
                       } catch (e) {
                         if (context.mounted) {

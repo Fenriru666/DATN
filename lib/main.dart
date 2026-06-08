@@ -35,46 +35,37 @@ void main() async {
     // await Supabase.instance.client.auth.signOut();
     // debugPrint("DEBUG: Forced Supabase sign out on startup.");
 
-    // Check if any apps are already initialized (e.g. from hot restart)
-    if (Firebase.apps.isNotEmpty) {
-      debugPrint("DEBUG: Firebase apps already exist: ${Firebase.apps.length}");
-      var app = Firebase.app();
-      debugPrint("DEBUG: Default app name: ${app.name}");
-      debugPrint("DEBUG: Default app options: ${app.options.asMap}");
-    } else {
-      debugPrint("DEBUG: No Firebase apps found. Initializing...");
-      try {
-        debugPrint(
-          "DEBUG: Using Config = ${DefaultFirebaseOptions.currentPlatform.asMap}",
-        );
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        debugPrint("DEBUG: Firebase.initializeApp() completed.");
-      } catch (initErr) {
-        debugPrint("CRITICAL: Firebase.initializeApp() FAILED: $initErr");
-        rethrow;
+    debugPrint("DEBUG: No Firebase apps found. Initializing...");
+    try {
+      debugPrint(
+        "DEBUG: Using Config = ${DefaultFirebaseOptions.currentPlatform.asMap}",
+      );
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      debugPrint("DEBUG: Firebase.initializeApp() completed.");
+    } catch (initErr) {
+      // Hot restart on Web might throw duplicate app error, safely ignore it
+      if (initErr.toString().contains('duplicate') || initErr.toString().contains('already exists')) {
+         debugPrint("DEBUG: Firebase already initialized (Hot Restart).");
+      } else {
+         debugPrint("CRITICAL: Firebase.initializeApp() FAILED: $initErr");
+         rethrow;
       }
     }
 
     debugPrint(
       "Firebase initialized successfully. Apps: ${Firebase.apps.length}",
     );
-
-    // Double check the default app exists
-    try {
-      final defaultApp = Firebase.app();
-      debugPrint("DEBUG: Verified Default App exists: ${defaultApp.name}");
-    } catch (e) {
-      debugPrint("CRITICAL: Firebase.app() failed after success log: $e");
-      throw Exception("Firebase Initialized but [DEFAULT] app is missing.");
-    }
-
+    
     try {
       if (Firebase.apps.isNotEmpty) {
-        // Tự động kiểm tra và khởi tạo dữ liệu
-        debugPrint("DEBUG: Seeding users...");
-        await UserSeeder().seedUsers();
+        // Tự động kiểm tra và khởi tạo dữ liệu (Tạm tắt để tránh pause on exception trong IDE)
+        const bool kShouldSeedData = false;
+        if (kShouldSeedData) {
+          debugPrint("DEBUG: Seeding users...");
+          await UserSeeder().seedUsers();
+        }
         // debugPrint("DEBUG: Seeding data...");
         // await DataSeeder.seed();
         // debugPrint("DEBUG: Seeding complete.");

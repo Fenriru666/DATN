@@ -519,13 +519,23 @@ class _RestaurantCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Center(
-                      child: Icon(
-                        Icons.fastfood,
-                        size: 60,
-                        color: Colors.white60,
+                    if (restaurant.imageUrl.startsWith('http'))
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                          child: Image.network(
+                            restaurant.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stack) => const Center(
+                              child: Icon(Icons.fastfood, size: 60, color: Colors.white60),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const Center(
+                        child: Icon(Icons.fastfood, size: 60, color: Colors.white60),
                       ),
-                    ),
                     Positioned(
                       top: 16,
                       left: 16,

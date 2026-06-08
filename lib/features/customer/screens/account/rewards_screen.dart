@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:datn/core/models/user_model.dart';
 import 'package:datn/core/utils/tier_calculator.dart';
 import 'package:datn/core/services/notification_service.dart';
@@ -15,13 +15,13 @@ class RewardsScreen extends StatefulWidget {
 }
 
 class _RewardsScreenState extends State<RewardsScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  SupabaseClient get _supabase => Supabase.instance.client;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<UserModel?> _streamCurrentUser() {
-    final user = _auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return const Stream.empty();
-    return _firestore.collection('users').doc(user.uid).snapshots().map((doc) {
+    return _firestore.collection('users').doc(user.id).snapshots().map((doc) {
       if (doc.exists) return UserModel.fromMap(doc.data()!, doc.id);
       return null;
     });
